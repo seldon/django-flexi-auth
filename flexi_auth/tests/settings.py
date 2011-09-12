@@ -24,11 +24,29 @@ elif test_engine == "django.db.backends.postgresql_psycopg2":
     DATABASES['default']['PORT'] = os.environ.get("FLEXI_AUTH_DATABASE_PORT", 5432)
 
 INSTALLED_APPS = (
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions', 
+    'django.contrib.sites',
+    'django.contrib.flatpages',
+    'permissions',
     'flexi_auth',
-    'flexi_auth.tests',
+    'flexi_auth.tests',    
      # other dependencies go here 
 )
 
+MIDDLEWARE_CLASSES = (
+     'django.middleware.common.CommonMiddleware',
+     'django.contrib.sessions.middleware.SessionMiddleware',
+     'django.contrib.auth.middleware.AuthenticationMiddleware',
+     'django.contrib.flatpages.middleware.FlatpageFallbackMiddleware',                  
+) 
+
+
+ROOT_URLCONF = ''
+SITE_ID = 1
+
+# app-specific settings
 ROLES_LIST = ()
 
 PARAM_CHOICES = ()
