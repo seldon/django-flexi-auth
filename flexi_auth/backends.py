@@ -66,7 +66,7 @@ class ParamRoleBackend(object):
         return None
     
     
-    def has_perm(self, user_obj, perm, obj=None, **context):
+    def has_perm(self, user_obj, perm, obj=None):
         """
         Checks whether a user has a table-level/row-level permission on a model class/instance.
 
@@ -90,7 +90,7 @@ class ParamRoleBackend(object):
             a dictionary specificing context information that should be taken into account when executing 
             the permission check.    
         """
-        
+        #FIXME: adapt docstring to the new signature
         # delegate non-object permission checks to Django's default backend (``ModelBackend``) - or whatever
         if obj is None:
                 return False
@@ -104,7 +104,7 @@ class ParamRoleBackend(object):
             return False
 
         # retrieve the function implementing the permission check for the given model
-        # if ``obj`` is a model instance, that function should be a (bound) instance method;
-        # if ``obj`` is a model class, it should be a (bound) class method.          
-        perm_check = getattr(obj, 'can_' + perm.lowercase())
-        return perm_check(user_obj, context)
+        # if ``obj.model_or_instance`` is a model instance, that function should be a (bound) instance method;
+        # if ``obj.model_or_instance`` is a model class, it should be a (bound) class method.          
+        perm_check = getattr(obj.model_or_instance, 'can_' + perm.lowercase())
+        return perm_check(user_obj, obj.context)

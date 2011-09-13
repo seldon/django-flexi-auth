@@ -13,6 +13,15 @@ from flexi_auth.managers import RoleManager
 
 ROLES_DICT = dict(settings.ROLES_LIST)
 
+class ObjectWithContext(object):
+    """
+    TODO: write docstring
+    """
+    def __init__(self, model_or_instance, context):
+        self.model_or_instance = model_or_instance
+        self.context = context
+        
+
 class PermissionBase(object):
     """
     Just a mix-in class for permission management.
