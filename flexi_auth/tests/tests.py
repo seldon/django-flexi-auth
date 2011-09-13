@@ -41,6 +41,7 @@ class ParamByNameTest(TestCase):
         """When trying to retrieve an unset parameter, raise ``RoleParameterNotAllowed``"""
         pass
 
+
 class ParamModelTest(TestCase):
     """Test behaviour of the ``Param`` model"""
 
@@ -64,6 +65,7 @@ class ParamRoleAsDictTest(TestCase):
     def testConversionFail(self):
         """If the argument isn't a ``ParamRole`` instance, raise a ``TypeError``"""
         pass
+
         
 class ParamRoleAsDictValidationTest(TestCase):
     """Tests for the ``_is_valid_parametric_role_dict_repr()`` helper function"""
@@ -87,6 +89,7 @@ class ParamRoleAsDictValidationTest(TestCase):
     def testValidationFailIfNotParams(self): 
         """If ``params`` key is not a dictionary, return ``False``"""
         pass
+
         
 class ParamRoleComparisonTest(TestCase):
     """Tests for the ``_compare_parametric_roles()`` helper function"""
@@ -115,6 +118,7 @@ class ParamRoleComparisonTest(TestCase):
     
     def testErrorIfInvalidArguments(self):
         """If an argument is neither a ParamRole instance nor a valid dictionary representation for it, raise ``TypeError``"""
+
         
 class ParamRoleValidationTest(TestCase):
     """Tests for the ``_validate_parametric_role`` function"""
@@ -140,6 +144,7 @@ class ParamRoleValidationTest(TestCase):
     def testValidationOKIfNoConstraints(self):
         """Verify that validation of any parametric role succeeds if no costraints are specified"""
         pass
+
     
 class ParamRoleRegistrationTest(TestCase):
     """Tests for the ``register_parametric_role`` function"""
@@ -165,6 +170,7 @@ class ParamRoleRegistrationTest(TestCase):
     def testAvoidDuplicateParamRoles(self):
         """If a given parametric role already exists in the DB, don't duplicate it"""
         pass
+
 
 class AddParametricRoleTest(TestCase):
     """Tests for the ``add_parametric_role`` function"""
@@ -217,8 +223,8 @@ class RemoveParametricRoleTest(TestCase):
     def testWrongPrincipalType(self):
         """If the principal is neither a ``User`` nor a ``Group`` instance, raise ``TypeError``"""
         
-class RemoveParametricRolesTest(TestCase):
-    """Tests for the `remove_parametric_roles()`` function"""
+class ClearParametricRolesTest(TestCase):
+    """Tests for the ``clear_parametric_roles()`` function"""
 
     def setUp(self):
         pass
@@ -242,6 +248,7 @@ class RemoveParametricRolesTest(TestCase):
     def testWrongPrincipalType(self):
         """If the principal is neither a ``User`` nor a ``Group`` instance, raise ``TypeError``"""
 
+
 class GetParametricRolesTest(TestCase):
     """Tests for the ``get_parametric_roles()`` function"""
 
@@ -258,6 +265,7 @@ class GetParametricRolesTest(TestCase):
         
     def testWrongPrincipalType(self):
         """If the principal is neither a ``User`` nor a ``Group`` instance, raise ``TypeError``"""
+
 
 class GetAllParametricRolesTest(TestCase):
     """Tests for the ``get_all_parametric_roles()`` function"""
@@ -276,7 +284,6 @@ class GetAllParametricRolesTest(TestCase):
     def testWrongPrincipalType(self):
         """If the principal is neither a ``User`` nor a ``Group`` instance, raise ``TypeError``"""
 
-
     
 class RoleAutoSetupTest(TestCase):
     """Test automatic role-setup operations happening at instance-creation time"""
@@ -293,6 +300,7 @@ class ParamRoleModelTest(TestCase):
     def testSingleParameterRetrieval(self):
         """Tests for the ``ParamRole.param()`` method"""
         pass
+
 
 class ParamRoleGetRoleTest(TestCase):
     """Tests for``ParamRole.get_role()`` class method"""
@@ -342,6 +350,7 @@ class AddParamRoleToPrincipalTest(TestCase):
     def testAddFail(self):
         """If neither a ``User`` nor a ``Group`` instance is passed, raise ``TypeError``"""
 
+
 class ParamRoleGetUsersTest(TestCase):
     """Tests for the ``ParamRole.get_users()`` method"""
     
@@ -351,6 +360,7 @@ class ParamRoleGetUsersTest(TestCase):
     def testGetUsersOK(self):
         """Verify that all the users this parametric role was assigned to are returned"""
         pass
+
     
 class ParamRoleGetGroupsTest(TestCase):
     """Tests for the ``ParamRole.get_groups()`` method"""
@@ -361,6 +371,7 @@ class ParamRoleGetGroupsTest(TestCase):
     def testGetGroupsOK(self):
         """Verify that all the groups this parametric role was assigned to are returned"""
         pass
+
 
 class ParamRoleArchiveAPITest(TestCase):
     """Test the 'archive API' for ``ParamRole``s"""
@@ -398,6 +409,7 @@ class PrincipalRoleRelationTest(TestCase):
     def testSetPrincipalError(self):
         """If neither a ``User`` nor a ``Group`` instance is passed, raise ``TypeError``"""
         pass
+ 
     
 class RoleManagerTest(TestCase):
     """Tests for the ``RoleManager`` custom manager class"""

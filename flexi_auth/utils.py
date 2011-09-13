@@ -305,7 +305,7 @@ def remove_parametric_role(principal, role):
 
     return True
 
-def remove_parametric_roles(principal):
+def clear_parametric_roles(principal):
     """
     Removes all parametric roles assigned to a principal (a `'User`` or ``Group`` instance).
     
