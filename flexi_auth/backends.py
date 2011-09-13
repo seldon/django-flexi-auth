@@ -1,6 +1,7 @@
 
 class ParamRoleBackend(object):
-    """A Django authorization backend for (parametric) role-based permission checking.
+    """
+    A Django authorization backend for (parametric) role-based permission checking.
     
     It supports per-model (table-level) and per-instance (row-level) permissions.
 
@@ -9,11 +10,11 @@ class ParamRoleBackend(object):
 
         AUTHENTICATION_BACKENDS = (
             'django.contrib.auth.backends.ModelBackend',
-            'gasistafelice.auth.backends.ParamRoleBackend',
+            'flexi_auth.backends.ParamRoleBackend',
         )
 
     Then, to check if a Django user has a permission on a given object (model class or instance), 
-    just invoke the ``.has_perm()`` method on the User model:
+    just invoke the ``.has_perm()`` method on the ``User`` model:
 
         user.has_perm(perm, obj)
         
@@ -51,8 +52,7 @@ class ParamRoleBackend(object):
               ...
           # row-level DELETE permission
           def can_delete (self, user, **kwargs):
-              ...
-               
+              ...               
     """
     
     supports_object_permissions = True
@@ -80,15 +80,15 @@ class ParamRoleBackend(object):
             The codename of the permission which should be checked.
 
         ``user_obj``
-            The User for which the permission should be checked.
+            The user for which the permission should be checked.
 
-        obj
+        ``obj``
             The object (either a model class or instance) for which the permission should be checked.
             If ``obj`` is a model class, the permission is a table-level one; 
             If ``obj`` is a model instance, the permission is a row-level one.
         """
         
-        # delegate non-object permission check to Django's default backend (``ModelBackend``) - or whatever
+        # delegate non-object permission checks to Django's default backend (``ModelBackend``) - or whatever
         if obj is None:
                 return False
                     
