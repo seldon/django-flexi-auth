@@ -1,4 +1,3 @@
-
 class ParamRoleBackend(object):
     """
     A Django authorization backend for (parametric) role-based permission checking.
@@ -30,10 +29,10 @@ class ParamRoleBackend(object):
     * if the permission is model-level, it should be a class-method; 
       on the other hand, if the permission is instance-level, it should be an instance-method;
     * the method should be named as ``can_<perm>``, where ``<perm>`` is the lower-cased permission codename;
-    * the method must take as argument an ``User`` instance and allow for arbitrarily keyword arguments;
-      so the method signature should be ``(user, **kwargs)``.  Keyword arguments are needed 
-      - for example - when a given user is granted the permission to create a new model instance 
-      depending on additional parameters defining the actual context;  
+    * the method must take as argument an ``User`` instance and allow for arbitrary context information 
+      (expressed as a dictionary); so, the method signature should be ``(user, context)``.  
+      Context information is needed - for example - when a given user is granted the permission to create 
+      a new model instance depending on additional parameters defining the actual context;  
     * the method should return ``True`` if the given user is granted the given permission on the object 
       w.r.t. which the permission is checked (model class or instance), ``False`` otherwise.
   
@@ -45,13 +44,13 @@ class ParamRoleBackend(object):
           ## authorization API
           # table-level CREATE permission
           @classmethod
-          def can_create(cls, user, **kwargs):
+          def can_create(cls, user, context):
               ...
           # row-level VIEW permission
-          def can_view (self, user, **kwargs):
+          def can_view (self, user, context):
               ...
           # row-level DELETE permission
-          def can_delete (self, user, **kwargs):
+          def can_delete (self, user, context):
               ...               
     """
     
@@ -67,7 +66,7 @@ class ParamRoleBackend(object):
         return None
     
     
-    def has_perm(self, user_obj, perm, obj=None, **kwargs):
+    def has_perm(self, user_obj, perm, obj=None, **context):
         """
         Checks whether a user has a table-level/row-level permission on a model class/instance.
 
@@ -86,6 +85,10 @@ class ParamRoleBackend(object):
             The object (either a model class or instance) for which the permission should be checked.
             If ``obj`` is a model class, the permission is a table-level one; 
             If ``obj`` is a model instance, the permission is a row-level one.
+        
+        ``context``
+            a dictionary specificing context information that should be taken into account when executing 
+            the permission check.    
         """
         
         # delegate non-object permission checks to Django's default backend (``ModelBackend``) - or whatever
@@ -104,4 +107,4 @@ class ParamRoleBackend(object):
         # if ``obj`` is a model instance, that function should be a (bound) instance method;
         # if ``obj`` is a model class, it should be a (bound) class method.          
         perm_check = getattr(obj, 'can_' + perm.lowercase())
-        return perm_check(user_obj, **kwargs)
+        return perm_check(user_obj, context)

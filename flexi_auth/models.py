@@ -26,23 +26,23 @@ class PermissionBase(object):
     
     # Table-level CREATE permission    
     @classmethod
-    def can_create(cls, user, **kwargs):
+    def can_create(cls, user, context):
         return True
 
     # Row-level LIST permission
-    def can_list(self, user, **kwargs):
+    def can_list(self, user, context):
         return True
     
     # Row-level VIEW permission
-    def can_view(self, user, **kwargs):
+    def can_view(self, user, context):
         return True
     
     # Row-level EDIT permission
-    def can_edit(self, user, **kwargs):
+    def can_edit(self, user, context):
         return True
     
     # Row-level DELETE permission
-    def can_delete(self, user, **kwargs):
+    def can_delete(self, user, context):
         return True
     
     
