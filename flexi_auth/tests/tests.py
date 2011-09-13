@@ -1,5 +1,31 @@
 from django.test import TestCase
 from django.contrib.auth.models import User, Group 
+from django.contrib.contenttypes.models import ContentType
+
+from flexi_auth.utils import get_ctype_from_model_label
+
+class GetCtypeFromModelLabelTest(TestCase):
+    """Tests for the ``get_ctype_from_model_label()`` function"""
+    
+    def setUp(self):
+            pass
+    
+    def testOK(self):
+        """Verify the right ContentType is returned if the model label is good"""
+        user_ct = ContentType.objects.get_for_model(User)
+        ct = get_ctype_from_model_label('auth.User')
+        self.assertEqual(ct, user_ct)
+        
+    def testMalformedLabel(self):
+        """Return None if the label is malformed"""        
+        ct = get_ctype_from_model_label('auth:User')
+        self.assertIsNone(ct)
+        
+    def testModelNotExisting(self):
+        """Return None if the label points to a non existing model"""
+        ct = get_ctype_from_model_label('auth.Foo')
+        self.assertIsNone(ct)
+        
 
 class ParamByNameTest(TestCase):
     """Test if parameters of a parametric role can be accessed by name"""
@@ -26,7 +52,7 @@ class ParamModelTest(TestCase):
         pass
 
 class ParamRoleAsDictTest(TestCase):
-    """Test for the ``parametric_role_as_dict()`` helper function"""
+    """Tests for the ``parametric_role_as_dict()`` helper function"""
     
     def setUp(self):
         pass
@@ -40,7 +66,7 @@ class ParamRoleAsDictTest(TestCase):
         pass
         
 class ParamRoleAsDictValidationTest(TestCase):
-    """Test for the ``_is_valid_parametric_role_dict_repr()`` helper function"""
+    """Tests for the ``_is_valid_parametric_role_dict_repr()`` helper function"""
     
     def setUp(self):
         pass
@@ -63,7 +89,7 @@ class ParamRoleAsDictValidationTest(TestCase):
         pass
         
 class ParamRoleComparisonTest(TestCase):
-    """Test for the ``_compare_parametric_roles()`` helper function"""
+    """Tests for the ``_compare_parametric_roles()`` helper function"""
     
     def setUp(self):
         pass
@@ -91,7 +117,7 @@ class ParamRoleComparisonTest(TestCase):
         """If an argument is neither a ParamRole instance nor a valid dictionary representation for it, raise ``TypeError``"""
         
 class ParamRoleValidationTest(TestCase):
-    """Test for the ``_validate_parametric_role`` function"""
+    """Tests for the ``_validate_parametric_role`` function"""
     def setUp(self):
         pass
    
@@ -116,7 +142,7 @@ class ParamRoleValidationTest(TestCase):
         pass
     
 class ParamRoleRegistrationTest(TestCase):
-    """Test for the ``register_parametric_role`` function"""
+    """Tests for the ``register_parametric_role`` function"""
     def setUp(self):
         pass
     
@@ -139,6 +165,118 @@ class ParamRoleRegistrationTest(TestCase):
     def testAvoidDuplicateParamRoles(self):
         """If a given parametric role already exists in the DB, don't duplicate it"""
         pass
+
+class AddParametricRoleTest(TestCase):
+    """Tests for the ``add_parametric_role`` function"""
+
+    def setUp(self):
+        pass
+
+    def testAddToUserOK(self):
+        """If a ``User`` instance is passed, the parametric role gets assigned to that user"""
+        pass
+    
+    def testAddToUserRoleAlreadyAssigned(self):
+        """If the role was already assigned to the user, return ``False``"""
+        pass     
+        
+    def testAddToGroupOK(self):
+        """If a ``Group`` instance is passed, the parametric role gets assigned to that group"""
+        pass
+    
+    def testAddToGroupRoleAlreadyAssigned(self):
+        """If the role was already assigned to the group, return ``False``"""
+        pass           
+        
+    def testWrongPrincipalType(self):
+        """If the principal is neither a ``User`` nor a ``Group`` instance, raise ``TypeError``"""
+    
+    
+class RemoveParametricRoleTest(TestCase):
+    """Tests for the ``remove_parametric_role()`` function"""
+
+    def setUp(self):
+        pass
+
+    def testRemoveFromUserOK(self):
+        """If a ``User`` instance is passed, the parametric role gets removed from that user"""
+        pass
+    
+    def testRoleNotAssignedToUserBefore(self):
+        """If the role wasn't already assigned to the user, return ``False``"""
+        pass     
+        
+    def testRemoveFromGroupOK(self):
+        """If a ``Group`` instance is passed, the parametric role gets removed from that group"""
+        pass
+    
+    def testRoleNotAssignedToGroupBefore(self):
+        """If the role wasn't already assigned to the group, return ``False``"""
+        pass    
+        
+    def testWrongPrincipalType(self):
+        """If the principal is neither a ``User`` nor a ``Group`` instance, raise ``TypeError``"""
+        
+class RemoveParametricRolesTest(TestCase):
+    """Tests for the `remove_parametric_roles()`` function"""
+
+    def setUp(self):
+        pass
+
+    def testRemoveFromUserOK(self):
+        """If a ``User`` instance is passed, all parametric roles get removed from that user"""
+        pass
+    
+    def testNoRoleAssignedToUserBefore(self):
+        """If no role had been previously assigned to the user, return ``False``"""
+        pass     
+        
+    def testRemoveFromGroupOK(self):
+        """If a ``Group`` instance is passed, all parametric roles get removed from that group"""
+        pass
+    
+    def testNoRoleAssignedToGroupBefore(self):
+        """If no role had been previously assigned to the group, return ``False``"""
+        pass    
+        
+    def testWrongPrincipalType(self):
+        """If the principal is neither a ``User`` nor a ``Group`` instance, raise ``TypeError``"""
+
+class GetParametricRolesTest(TestCase):
+    """Tests for the ``get_parametric_roles()`` function"""
+
+    def setUp(self):
+        pass
+
+    def testGetForUserOK(self):
+        """If a ``User`` instance is given, retrieve all the parametric roles assigned to it"""
+        pass
+    
+    def testGetForGroupOK(self):
+        """If a ``Group`` instance is given, retrieve all the parametric roles assigned to it"""
+        pass
+        
+    def testWrongPrincipalType(self):
+        """If the principal is neither a ``User`` nor a ``Group`` instance, raise ``TypeError``"""
+
+class GetAllParametricRolesTest(TestCase):
+    """Tests for the ``get_all_parametric_roles()`` function"""
+
+    def setUp(self):
+        pass
+
+    def testGetForUserOK(self):
+        """If a ``User`` instance is given, retrieve all the parametric roles assigned to it, directly or via its groups"""
+        pass
+    
+    def testGetForGroupOK(self):
+        """If a ``Group`` instance is given, retrieve all the parametric roles assigned to it"""
+        pass
+        
+    def testWrongPrincipalType(self):
+        """If the principal is neither a ``User`` nor a ``Group`` instance, raise ``TypeError``"""
+
+
     
 class RoleAutoSetupTest(TestCase):
     """Test automatic role-setup operations happening at instance-creation time"""
@@ -153,11 +291,11 @@ class ParamRoleModelTest(TestCase):
         pass
     
     def testSingleParameterRetrieval(self):
-        """Test ``ParamRole.param()`` method"""
+        """Tests for the ``ParamRole.param()`` method"""
         pass
 
 class ParamRoleGetRoleTest(TestCase):
-    """Test ``ParamRole.get_role()`` class method"""
+    """Tests for``ParamRole.get_role()`` class method"""
 
     def setUp(self):
         pass
@@ -188,7 +326,7 @@ class ParamRoleGetRoleTest(TestCase):
   
   
 class AddParamRoleToPrincipalTest(TestCase):
-    """Test ``ParamRole.add_principal()`` method"""
+    """Tests for the ``ParamRole.add_principal()`` method"""
 
     def setUp(self):
         pass
@@ -205,7 +343,7 @@ class AddParamRoleToPrincipalTest(TestCase):
         """If neither a ``User`` nor a ``Group`` instance is passed, raise ``TypeError``"""
 
 class ParamRoleGetUsersTest(TestCase):
-    """Test ``ParamRole.get_users()`` method"""
+    """Tests for the ``ParamRole.get_users()`` method"""
     
     def setUp(self):
         pass
@@ -215,7 +353,7 @@ class ParamRoleGetUsersTest(TestCase):
         pass
     
 class ParamRoleGetGroupsTest(TestCase):
-    """Test ``ParamRole.get_groups()`` method"""
+    """Tests for the ``ParamRole.get_groups()`` method"""
     
     def setUp(self):
         pass
@@ -234,7 +372,7 @@ class ParamRoleArchiveAPITest(TestCase):
         """Check that ``ParamRole.is_active`` behaves as expected under normal conditions"""
         pass
     
-    def testIsActiveOK(self):
+    def testIsArchived(self):
         """Check that ``ParamRole.is_archived`` behaves as expected under normal conditions"""
         pass
     
@@ -244,7 +382,7 @@ class ParamRoleArchiveAPITest(TestCase):
 
     
 class PrincipalRoleRelationTest(TestCase):
-    """Test for the ``PrincipalRoleRelation`` model methods"""
+    """Tests for the ``PrincipalRoleRelation`` model methods"""
     
     def setUp(self):
         pass
@@ -262,7 +400,7 @@ class PrincipalRoleRelationTest(TestCase):
         pass
     
 class RoleManagerTest(TestCase):
-    """Test for the ``RoleManager`` custom manager class"""
+    """Tests for the ``RoleManager`` custom manager class"""
 
     def setUp(self):
         pass
@@ -310,7 +448,7 @@ class RoleManagerTest(TestCase):
        
 
 class ParamRoleBackendTest(TestCase):
-    """Test for the ``ParamRoleBackend`` custom authorization backend"""
+    """Tests for the ``ParamRoleBackend`` custom authorization backend"""
 
     def setUp(self):
         pass       
@@ -340,11 +478,11 @@ class ParamRoleBackendTest(TestCase):
         pass
     
     def testTableLevelPermission(self):
-        """Test for table(class)-level permission-checking"""
+        """Tests for table(class)-level permission-checking"""
         pass
     
-    def testTableLevelPermission(self):
-        """Test for row(instance)-level permission-checking"""
+    def testRowLevelPermission(self):
+        """Tests for row(instance)-level permission-checking"""
         pass
     
     def testInheritedPermission(self):
@@ -357,6 +495,7 @@ class ParamRoleBackendTest(TestCase):
     
 
         
+
 
         
 
