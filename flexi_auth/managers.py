@@ -85,7 +85,8 @@ class RoleManager(models.Manager):
                 
         qs = self.filter(pk__in=[obj.pk for obj in pr_list])
         return qs
-         
+   
+   ##--------------- Archive API --------------##      
     def active(self, role_name, **params):
         """
         Return all **active** parametric roles satisfying the criteria provided as input.
@@ -104,5 +105,5 @@ class RoleManager(models.Manager):
         """
         return self.get_param_roles(self, role_name, **params).archived()
     
- 
+    ##---------------------------------------##
 
