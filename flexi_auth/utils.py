@@ -243,16 +243,16 @@ def _compare_parametric_roles(p_role1, p_role2):
 
 def add_parametric_role(principal, role):
     """
-    Adds a parametric role to a principal.  
+    Adds a parametric role to a principal (a `'User`` or ``Group`` instance).  
     
     Return ``True`` if a new parametric role was added to the principal, 
     ``False`` if the given parametric role was already assigned to the principal;
-    raise ``AttributeError`` if the principal is neither a ``User`` nor a ``Group`` instance.  
+    raise ``TypeError`` if the principal is neither a ``User`` nor a ``Group`` instance.  
 
     **Parameters:**
 
     principal
-        The principal (``User`` or ``Group``) which gets the parametric role added.
+        The principal (user or group) which gets the parametric role added.
 
     role
         The (parametric) role which is assigned.
@@ -270,21 +270,21 @@ def add_parametric_role(principal, role):
             PrincipalParamRoleRelation.objects.create(group=principal, role=role)
             return True
     else:
-        raise AttributeError("The principal must be either a User instance or a Group instance.")
+        raise TypeError("The principal must be either a User instance or a Group instance.")
 
     return False
 
 def remove_parametric_role(principal, role):
     """
-    Remove a parametric role from a principal.
+    Remove a parametric role from a principal (a `'User`` or ``Group`` instance.
       
-    Return ``True`` if the removal was successful, ``False`` otherwise; 
-    raise ``AttributeError`` if the principal is neither a ``User`` nor a ``Group`` instance.  
+    Return ``True`` if the removal was successful, ``False`` if the role hasn't been previously assigned 
+    to the principal; raise ``TypeError`` if the principal is neither a ``User`` nor a ``Group`` instance.  
 
     **Parameters:**
 
     principal
-        The principal (``User`` or ``Group``) which gets the parametric role removed.
+        The principal (user or group) which gets the parametric role removed.
 
     role
         The (parametric) role which is removed from the principal.
@@ -296,7 +296,7 @@ def remove_parametric_role(principal, role):
         elif isinstance(principal, Group):
             ppr = PrincipalParamRoleRelation.objects.get(group=principal, role=role)
         else:
-            raise AttributeError("The principal must be either a User instance or a Group instance.")
+            raise TypeError("The principal must be either a User instance or a Group instance.")
 
     except PrincipalParamRoleRelation.DoesNotExist:
         return False
@@ -307,22 +307,22 @@ def remove_parametric_role(principal, role):
 
 def remove_parametric_roles(principal):
     """
-    Removes all parametric roles assigned to a principal (`'User`` or ``Group``).
+    Removes all parametric roles assigned to a principal (a `'User`` or ``Group`` instance).
     
-    Return ``True`` if the removal was successful, ``False`` otherwise; 
-    raise an ``AttributeError`` if the principal is neither a ``User`` nor a ``Group`` instance.
+    Return ``True`` if the removal was successful, ``False`` if no role had been previously 
+    assigned to that principal;  raise ``TypeError`` if the principal is neither a ``User`` nor a ``Group`` instance.
       
     **Parameters:**
 
     principal
-        The principal (a ``User`` or ``Group`` instance) from which all parametric roles are removed.
+        The principal (user or group) from which all parametric roles are removed.
     """
     if isinstance(principal, User):
         pprs = PrincipalParamRoleRelation.objects.filter(user=principal)
     elif isinstance(principal, Group):
         pprs = PrincipalParamRoleRelation.objects.filter(group=principal)
     else:
-        raise AttributeError("The principal must be either a User instance or a Group instance.")   
+        raise TypeError("The principal must be either a User instance or a Group instance.")   
     if len(pprs) == 0:
         return False
     else:
@@ -334,7 +334,7 @@ def get_parametric_roles(principal):
     """
     Return parametric roles assigned to a principal (``User`` or ``Group``).
         
-    Raise ``AttributeError`` if the principal is neither a ``User`` nor a ``Group` instance.
+    Raise ``TypeError`` if the principal is neither a ``User`` nor a ``Group` instance.
     """
     
     if isinstance(principal, User):
@@ -344,7 +344,7 @@ def get_parametric_roles(principal):
         return [prr.role for prr in PrincipalParamRoleRelation.objects.filter(
             group=principal)]
     else:
-        raise AttributeError("The principal must be either a User instance or a Group instance.")
+        raise TypeError("The principal must be either a User instance or a Group instance.")
     
     
 def get_all_parametric_roles(principal):
@@ -353,6 +353,8 @@ def get_all_parametric_roles(principal):
     
     This takes into account roles assigned directly to the principal and, 
     if the principal is a ``User``, also roles obtained via a ``Group`` the user belongs to.
+    
+    Raise ``TypeError`` if the principal is neither a ``User`` nor a ``Group` instance.
     """
     
     roles = get_parametric_roles(principal)
