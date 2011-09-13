@@ -168,6 +168,20 @@ class ParamRole(models.Model):
     
     @classmethod
     def get_role(cls, role_name, **params):
+        """
+        Return the (unique) parametric role matching criteria provided as input arguments.
+        
+        Exceptions 
+        ==========
+        * If no parametric role matches these criteria, raise ``ObjectDoesNotExist``.
+        * If more than one parametric role match these criteria, raise ``MultipleObjectsReturned``.
+        * If ``role_name`` is not a valid identifier for a role, raises ``RoleNotAllowed`` exception.
+        * If ``params`` contains an invalid parameter name, raises ``RoleParameterNotAllowed`` exception.
+        * If provided parameter names are valid, but one of them is assigned to a wrong type, 
+          (based on domain constraints), raises  ``RoleParameterWrongSpecsProvided`` exception.
+                  
+        """
+        
         qs = cls.objects.get_param_roles(role_name, **params)
         # TODO UNITTEST: write unit tests for this method
         if len(qs) > 1:
@@ -209,6 +223,8 @@ class ParamRole(models.Model):
         qs = User.objects.filter(principal_param_role_set__role=self)
         return qs
     
+    ##--------------- Archive API --------------##
+    @property
     def is_active(self):
         """
         Return ``True`` if this parametric role is considered to be 'active'; ``False`` otherwise.
@@ -236,7 +252,7 @@ class ParamRole(models.Model):
                 return True                
         return is_active             
     
-    
+    @property
     def is_archived(self):
         """
         Return ``True`` if this parametric role is considered to be 'archived'; ``False`` otherwise.
@@ -254,8 +270,9 @@ class ParamRole(models.Model):
         # allowed states for a parametric role, so they are mutually esclusive; 
         # if this assumption is invalid, a more general implementation may be needed 
         # (such as that of the ``.is_active()`` method above).   
-        return not self.is_active()
+        return not self.is_active()  
     
+    ##---------------------------------------##
 
 class PrincipalParamRoleRelation(models.Model):
     """
