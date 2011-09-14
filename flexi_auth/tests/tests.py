@@ -1,8 +1,11 @@
 from django.test import TestCase
-from django.contrib.auth.models import User, Group 
+from django.contrib.auth.models import User, Group, AnonymousUser 
 from django.contrib.contenttypes.models import ContentType
 
 from flexi_auth.utils import get_ctype_from_model_label
+from flexi_auth.exceptions import WrongPermissionCheck 
+from flexi_auth.tests.models import Article, Book, Author
+
 
 class GetCtypeFromModelLabelTest(TestCase):
     """Tests for the ``get_ctype_from_model_label()`` function"""
@@ -463,47 +466,288 @@ class ParamRoleBackendTest(TestCase):
     """Tests for the ``ParamRoleBackend`` custom authorization backend"""
 
     def setUp(self):
-        pass       
-    
+        self.user = User.objects.create(username="Ian Solo")
+        self.super_user = User.objects.create(username="Harry Potter", is_superuser=True)       
+        self.anon_user = AnonymousUser()
+        self.inactive_user = User.objects.create(username="Albus Silente", is_active=False)
+        
+        self.author1 = Author.objects.create(name="Bilbo", surname="Baggins")
+        self.author2 = Author.objects.create(name="Luke", surname="Skywalker")
+        
+        self.article = Article.objects.create(title="Lorem Ipsum", body="Neque porro quisquam est qui dolorem ipsum quia dolor sit amet...", author=self.author1)
+        
+        self.book = Book.objects.create(title="Lorem Ipsum - The book", content="Neque porro quisquam est qui dolorem ipsum quia dolor sit amet...")
+        self.book.authors.add(self.author1, self.author2)
+        
     def testSuperUsersCanDoEverything(self):
         """Test that superusers always pass permission checks"""
-        pass
+        user = self.super_user
+        article = self.article
+        book = self.book
+        
+        # Table-level permission, no context, model not subclassing  ``PermissionBase``
+        self.assertTrue(user.has_perm('CREATE', Article))
+        # Table-level permission, with context, model not subclassing  ``PermissionBase`` 
+        self.assertTrue(user.has_perm('CREATE', Article, website="FooSite"))
+        self.assertTrue(user.has_perm('CREATE', Article, website="FooSite", edition="morning"))
+        # Row-level permission, no context, model not subclassing  ``PermissionBase``
+        self.assertTrue(user.has_perm('VIEW', article))
+        # Row-level permission, with context, model not subclassing  ``PermissionBase``
+        self.assertTrue(user.has_perm('VIEW', article, website="FooSite"))
+        self.assertTrue(user.has_perm('VIEW', article, website="FooSite", edition="morning"))
+        
+        # Table-level permission, no context, model subclassing  ``PermissionBase``
+        self.assertTrue(user.has_perm('CREATE', Book))
+        # Table-level permission, with context, model subclassing  ``PermissionBase`` 
+        self.assertTrue(user.has_perm('CREATE', Book, language="Italian"))
+        self.assertTrue(user.has_perm('CREATE', Book, language="Italian", cover="Paperback"))
+        # Row-level permission, no context, model subclassing  ``PermissionBase``
+        self.assertTrue(user.has_perm('VIEW', book))
+        # Row-level permission, with context, model subclassing  ``PermissionBase``
+        self.assertTrue(user.has_perm('VIEW', book, language="Italian"))
+        self.assertTrue(user.has_perm('VIEW', book, language="Italian", cover="Paperback"))     
     
     def testAnonymousUsersCanDoNothing(self):
         """Test that anonymous users always fail permission checks"""
-        pass
+        user = self.anon_user
+        article = self.article
+        book = self.book
+        
+        # Table-level permission, no context, model not subclassing  ``PermissionBase``
+        self.assertFalse(user.has_perm('CREATE', Article))
+        # Table-level permission, with context, model not subclassing  ``PermissionBase`` 
+        self.assertFalse(user.has_perm('CREATE', Article, website="FooSite"))
+        self.assertFalse(user.has_perm('CREATE', Article, website="FooSite", edition="morning"))
+        # Row-level permission, no context, model not subclassing  ``PermissionBase``
+        self.assertFalse(user.has_perm('VIEW', article))
+        # Row-level permission, with context, model not subclassing  ``PermissionBase``
+        self.assertFalse(user.has_perm('VIEW', article, website="FooSite"))
+        self.assertFalse(user.has_perm('VIEW', article, website="FooSite", edition="morning"))
+        
+        # Table-level permission, no context, model subclassing  ``PermissionBase``
+        self.assertFalse(user.has_perm('CREATE', Book))
+        # Table-level permission, with context, model subclassing  ``PermissionBase`` 
+        self.assertFalse(user.has_perm('CREATE', Book, language="Italian"))
+        self.assertFalse(user.has_perm('CREATE', Book, language="Italian", cover="Paperback"))
+        # Row-level permission, no context, model subclassing  ``PermissionBase``
+        self.assertFalse(user.has_perm('VIEW', book))
+        # Row-level permission, with context, model subclassing  ``PermissionBase``
+        self.assertFalse(user.has_perm('VIEW', book, language="Italian"))
+        self.assertFalse(user.has_perm('VIEW', book, language="Italian", cover="Paperback"))     
+    
     
     def testInactiveUsersCanDoNothing(self):
         """Test that inactive users always fail permission checks"""
-        pass
+        user = self.inactive_user
+        article = self.article
+        book = self.book
+        
+        # Table-level permission, no context, model not subclassing  ``PermissionBase``
+        self.assertFalse(user.has_perm('CREATE', Article))
+        # Table-level permission, with context, model not subclassing  ``PermissionBase`` 
+        self.assertFalse(user.has_perm('CREATE', Article, website="FooSite"))
+        self.assertFalse(user.has_perm('CREATE', Article, website="FooSite", edition="morning"))
+        # Row-level permission, no context, model not subclassing  ``PermissionBase``
+        self.assertFalse(user.has_perm('VIEW', article))
+        # Row-level permission, with context, model not subclassing  ``PermissionBase``
+        self.assertFalse(user.has_perm('VIEW', article, website="FooSite"))
+        self.assertFalse(user.has_perm('VIEW', article, website="FooSite", edition="morning"))
+        
+        # Table-level permission, no context, model subclassing  ``PermissionBase``
+        self.assertFalse(user.has_perm('CREATE', Book))
+        # Table-level permission, with context, model subclassing  ``PermissionBase`` 
+        self.assertFalse(user.has_perm('CREATE', Book, language="Italian"))
+        self.assertFalse(user.has_perm('CREATE', Book, language="Italian", cover="Paperback"))
+        # Row-level permission, no context, model subclassing  ``PermissionBase``
+        self.assertFalse(user.has_perm('VIEW', book))
+        # Row-level permission, with context, model subclassing  ``PermissionBase``
+        self.assertFalse(user.has_perm('VIEW', book, language="Italian"))
+        self.assertFalse(user.has_perm('VIEW', book, language="Italian", cover="Paperback")) 
     
     def testGlobalPermissionsDelegation(self):
         """If checking a non-object (global) permission, return ``False``"""
-        pass
+        user = self.user
+        self.assertFalse(user.has_perm('add_user'))
+        
+        user = self.super_user
+        self.assertFalse(user.has_perm('add_user'))
     
+        user = self.anon_user
+        self.assertFalse(user.has_perm('add_user'))
+        
+        user = self.inactive_user
+        self.assertFalse(user.has_perm('add_user'))
+            
+        
     def testWrongUserArgument(self):
         """If ``user_obj`` is not an ``User`` instance, raise ``AttributeError`` """
+        # TODO
         pass
     
     def testWrongPermissionCheck(self):
         """If requesting a permission check not implemented by a model, raise ``WrongPermissionCheck`` """
-        pass
+        article = self.article
+        book = self.book
+        
+        ## "Regular" user
+        user = self.user
+        # Table-level permission, no context, model not subclassing  ``PermissionBase``
+        self.assertRaises(WrongPermissionCheck, user.has_perm, 'CRATE', Article)
+        # Table-level permission, with context, model not subclassing  ``PermissionBase``
+        self.assertRaises(WrongPermissionCheck, user.has_perm, 'CRATE', Article, website="FooSite") 
+        self.assertRaises(WrongPermissionCheck, user.has_perm, 'CRATE', Article, website="FooSite", edition="morning")
+        # Row-level permission, no context, model not subclassing  ``PermissionBase``
+        self.assertRaises(WrongPermissionCheck, user.has_perm, 'MEW', article)
+        # Row-level permission, with context, model not subclassing  ``PermissionBase``
+        self.assertRaises(WrongPermissionCheck, user.has_perm, 'MEW', article, website="FooSite")
+        self.assertRaises(WrongPermissionCheck, user.has_perm, 'MEW', article, website="FooSite", edition="morning")
+        
+        # Table-level permission, no context, model subclassing  ``PermissionBase``
+        self.assertRaises(WrongPermissionCheck, user.has_perm, 'CRATE', Book)
+        # Table-level permission, with context, model subclassing  ``PermissionBase`` 
+        self.assertRaises(WrongPermissionCheck, user.has_perm, 'CRATE', Book, language="Italian")
+        self.assertRaises(WrongPermissionCheck, user.has_perm, 'CRATE', Book, language="Italian", cover="Paperback")
+        # Row-level permission, no context, model subclassing  ``PermissionBase``
+        self.assertRaises(WrongPermissionCheck, user.has_perm, 'MEW', book)
+        # Row-level permission, with context, model subclassing  ``PermissionBase``
+        self.assertRaises(WrongPermissionCheck, user.has_perm, 'MEW', book, language="Italian")
+        self.assertRaises(WrongPermissionCheck, user.has_perm, 'MEW', book, language="Italian", cover="Paperback")
+        
+        ## Superuser
+        user = self.super_user
+        # Table-level permission, no context, model not subclassing  ``PermissionBase``
+        self.assertRaises(WrongPermissionCheck, user.has_perm, 'CRATE', Article)
+        # Table-level permission, with context, model not subclassing  ``PermissionBase``
+        self.assertRaises(WrongPermissionCheck, user.has_perm, 'CRATE', Article, website="FooSite") 
+        self.assertRaises(WrongPermissionCheck, user.has_perm, 'CRATE', Article, website="FooSite", edition="morning")
+        # Row-level permission, no context, model not subclassing  ``PermissionBase``
+        self.assertRaises(WrongPermissionCheck, user.has_perm, 'MEW', article)
+        # Row-level permission, with context, model not subclassing  ``PermissionBase``
+        self.assertRaises(WrongPermissionCheck, user.has_perm, 'MEW', article, website="FooSite")
+        self.assertRaises(WrongPermissionCheck, user.has_perm, 'MEW', article, website="FooSite", edition="morning")
+        
+        # Table-level permission, no context, model subclassing  ``PermissionBase``
+        self.assertRaises(WrongPermissionCheck, user.has_perm, 'CRATE', Book)
+        # Table-level permission, with context, model subclassing  ``PermissionBase`` 
+        self.assertRaises(WrongPermissionCheck, user.has_perm, 'CRATE', Book, language="Italian")
+        self.assertRaises(WrongPermissionCheck, user.has_perm, 'CRATE', Book, language="Italian", cover="Paperback")
+        # Row-level permission, no context, model subclassing  ``PermissionBase``
+        self.assertRaises(WrongPermissionCheck, user.has_perm, 'MEW', book)
+        # Row-level permission, with context, model subclassing  ``PermissionBase``
+        self.assertRaises(WrongPermissionCheck, user.has_perm, 'MEW', book, language="Italian")
+        self.assertRaises(WrongPermissionCheck, user.has_perm, 'MEW', book, language="Italian", cover="Paperback") 
+        
+        ## Inactive user
+        user = self.inactive_user
+        # Table-level permission, no context, model not subclassing  ``PermissionBase``
+        self.assertRaises(WrongPermissionCheck, user.has_perm, 'CRATE', Article)
+        # Table-level permission, with context, model not subclassing  ``PermissionBase``
+        self.assertRaises(WrongPermissionCheck, user.has_perm, 'CRATE', Article, website="FooSite") 
+        self.assertRaises(WrongPermissionCheck, user.has_perm, 'CRATE', Article, website="FooSite", edition="morning")
+        # Row-level permission, no context, model not subclassing  ``PermissionBase``
+        self.assertRaises(WrongPermissionCheck, user.has_perm, 'MEW', article)
+        # Row-level permission, with context, model not subclassing  ``PermissionBase``
+        self.assertRaises(WrongPermissionCheck, user.has_perm, 'MEW', article, website="FooSite")
+        self.assertRaises(WrongPermissionCheck, user.has_perm, 'MEW', article, website="FooSite", edition="morning")
+        
+        # Table-level permission, no context, model subclassing  ``PermissionBase``
+        self.assertRaises(WrongPermissionCheck, user.has_perm, 'CRATE', Book)
+        # Table-level permission, with context, model subclassing  ``PermissionBase`` 
+        self.assertRaises(WrongPermissionCheck, user.has_perm, 'CRATE', Book, language="Italian")
+        self.assertRaises(WrongPermissionCheck, user.has_perm, 'CRATE', Book, language="Italian", cover="Paperback")
+        # Row-level permission, no context, model subclassing  ``PermissionBase``
+        self.assertRaises(WrongPermissionCheck, user.has_perm, 'MEW', book)
+        # Row-level permission, with context, model subclassing  ``PermissionBase``
+        self.assertRaises(WrongPermissionCheck, user.has_perm, 'MEW', book, language="Italian")
+        self.assertRaises(WrongPermissionCheck, user.has_perm, 'MEW', book, language="Italian", cover="Paperback") 
+        
+        ## Anonymous user
+        user = self.anon_user
+        # Table-level permission, no context, model not subclassing  ``PermissionBase``
+        self.assertRaises(WrongPermissionCheck, user.has_perm, 'CRATE', Article)
+        # Table-level permission, with context, model not subclassing  ``PermissionBase``
+        self.assertRaises(WrongPermissionCheck, user.has_perm, 'CRATE', Article, website="FooSite") 
+        self.assertRaises(WrongPermissionCheck, user.has_perm, 'CRATE', Article, website="FooSite", edition="morning")
+        # Row-level permission, no context, model not subclassing  ``PermissionBase``
+        self.assertRaises(WrongPermissionCheck, user.has_perm, 'MEW', article)
+        # Row-level permission, with context, model not subclassing  ``PermissionBase``
+        self.assertRaises(WrongPermissionCheck, user.has_perm, 'MEW', article, website="FooSite")
+        self.assertRaises(WrongPermissionCheck, user.has_perm, 'MEW', article, website="FooSite", edition="morning")
+        
+        # Table-level permission, no context, model subclassing  ``PermissionBase``
+        self.assertRaises(WrongPermissionCheck, user.has_perm, 'CRATE', Book)
+        # Table-level permission, with context, model subclassing  ``PermissionBase`` 
+        self.assertRaises(WrongPermissionCheck, user.has_perm, 'CRATE', Book, language="Italian")
+        self.assertRaises(WrongPermissionCheck, user.has_perm, 'CRATE', Book, language="Italian", cover="Paperback")
+        # Row-level permission, no context, model subclassing  ``PermissionBase``
+        self.assertRaises(WrongPermissionCheck, user.has_perm, 'MEW', book)
+        # Row-level permission, with context, model subclassing  ``PermissionBase``
+        self.assertRaises(WrongPermissionCheck, user.has_perm, 'MEW', book, language="Italian")
+        self.assertRaises(WrongPermissionCheck, user.has_perm, 'MEW', book, language="Italian", cover="Paperback")    
+    
     
     def testTableLevelPermission(self):
         """Tests for table(class)-level permission-checking"""
-        pass
-    
+        user = self.user
+        
+        # No context, model not subclassing  ``PermissionBase``
+        self.assertFalse(user.has_perm('CREATE', Article))
+        # With context, model not subclassing  ``PermissionBase`` 
+        self.assertFalse(user.has_perm('CREATE', Article, website="FooSite"))
+        self.assertTrue(user.has_perm('CREATE', Article, website="BarSite"))
+        self.assertTrue(user.has_perm('CREATE', Article, website="FooSite", edition="morning"))
+        
+        # No context, model subclassing  ``PermissionBase``
+        self.assertFalse(user.has_perm('CREATE', Book))
+        # With context, model subclassing  ``PermissionBase`` 
+        self.assertTrue(user.has_perm('CREATE', Book, language="Italian"))
+        self.assertFalse(user.has_perm('CREATE', Book, language="French"))
+        self.assertTrue(user.has_perm('CREATE', Book, language="Dutch", cover="Paperback"))
+        
     def testRowLevelPermission(self):
         """Tests for row(instance)-level permission-checking"""
-        pass
+        article = self.article
+        book = self.book                
+        user = self.user
+        
+        # No context, model not subclassing  ``PermissionBase``
+        self.assertFalse(user.has_perm('VIEW', article))
+        # With context, model not subclassing  ``PermissionBase``
+        self.assertFalse(user.has_perm('VIEW', article, website="FooSite"))
+        self.assertTrue(user.has_perm('VIEW', article, website="BarSite"))
+        self.assertTrue(user.has_perm('VIEW', article, website="FooSite", edition="morning"))
+        
+        # No context, model subclassing  ``PermissionBase``
+        self.assertFalse(user.has_perm('VIEW', book))
+        # With context, model subclassing  ``PermissionBase``
+        self.assertTrue(user.has_perm('VIEW', book, language="Italian"))
+        self.assertFalse(user.has_perm('VIEW', book, language="French"))
+        self.assertTrue(user.has_perm('VIEW', book, language="Dutch", cover="Paperback")) 
+        
     
     def testInheritedPermission(self):
         """A model subclassing ``PermissionBase`` should inherit all default permission-checking methods"""
-        pass
+        book = self.book                
+        user = self.user
+        
+        # No context
+        self.assertTrue(user.has_perm('DELETE', book))
+        # With context
+        self.assertTrue(user.has_perm('DELETE', book, language="Italian"))
+        self.assertTrue(user.has_perm('DELETE', book, language="Dutch", cover="Paperback")) 
+        
           
     def testOverridingPermission(self):
         """A model subclassing ``PermissionBase`` should be able to override any default permission-checking methods"""
-        pass
+        book = self.book                
+        user = self.user
+        
+        # No context
+        self.assertFalse(user.has_perm('VIEW', book))
+        # With context
+        self.assertFalse(user.has_perm('VIEW', book, language="French"))
+        self.assertFalse(user.has_perm('VIEW', book, language="English", cover="Paperback")) 
+        
     
 
         
