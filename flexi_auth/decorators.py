@@ -12,7 +12,7 @@ def object_permission_required(perm, obj, login_url=None, raise_exception=False,
     (as specified by the ``login_url`` parameter) or, if the ``raise_exception`` parameter 
     is set to ``True``, the ``PermissionDenied`` exception will be raised instead.
     """
-     
+    # CREDITS: just adapting Django's built-in ``@permission_required()`` decorator
     def check_perms(user):
         # First check if the user has the permission (even anonymous users)
         model_or_instance = obj
