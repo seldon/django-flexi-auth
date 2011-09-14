@@ -749,22 +749,58 @@ class ParamRoleBackendTest(TestCase):
         self.assertFalse(user.has_perm('VIEW', book, language="English", cover="Paperback")) 
         
     
-
-        
-
-
-        
-
-
-
-
-
-
-
-
-
+class ObjectPermissionDecoratorTest(TestCase):
+    """Tests for the ``object_permission_required()`` decorator"""
     
-
-
-
+    def setUp(self):
+        pass
+        
+    def testSuperUsersCanDoEverything(self):
+        """Test that superusers always pass permission checks"""
+        pass
+    
+    def testAnonymousUsersCanDoNothing(self):
+        """Test that anonymous users always fail permission checks"""
+        pass
+    
+    def testInactiveUsersCanDoNothing(self):
+        """Test that inactive users always fail permission checks"""
+        pass
+    
+    def testGlobalPermissionsDelegation(self):
+        """If checking a non-object (global) permission, raise ``WrongPermissionCheck``"""
+        pass
+    
+    def testWrongPermissionCheck(self):
+        """If requesting a permission check not implemented by a model, raise ``WrongPermissionCheck`` """
+        pass
+    
+    def testTableLevelPermission(self):
+        """Tests for table(class)-level permission-checking"""
+    
+    def testRowLevelPermission(self):
+        """Tests for row(instance)-level permission-checking"""
+        pass
+    
+    def testInheritedPermission(self):
+        """A model subclassing ``PermissionBase`` should inherit all default permission-checking methods"""
+        pass
+   
+    def testOverridingPermission(self):
+        """A model subclassing ``PermissionBase`` should be able to override any default permission-checking methods"""
+        pass
+    
+    def testLoginURLNoRaise(self):
+        """If the ``login_url`` parameter is set and ``raise_exception`` is ``False``, redirect to the login page if check fails"""
+        pass 
+    
+    def testNoLoginURLNoRaise(self):
+        """If the ``login_url`` parameter isn't set and ``raise_exception`` is ``False``, redirect to the default login page if check fails"""
+        pass 
+    
+    def testLoginURLRaise(self):
+        """If the ``login_url`` parameter is set but ``raise_exception`` is ``True``, raise ``PermissionDenied`` if check fails"""
+        pass 
+        
+     
     
