@@ -11,10 +11,15 @@ class Article(models.Model):
     body = models.TextField()
     author = models.ForeignKey(Author)
     
+    def __unicode__(self):
+        return self.title
+    
     ##-------------- authorization API----------------##
     # table-level CREATE permission
     @classmethod
     def can_create(cls, user, context):
+#        print "Executing check for permission 'CREATE' on model %(cls)s for user %(user)s wrt context %(ctx)s"\
+#              % {'cls':cls, 'user':user, 'ctx':context}  
         if context:
             try:
                 website = context['website']
@@ -26,6 +31,8 @@ class Article(models.Model):
         return False 
     # row-level VIEW permission
     def can_view (self, user, context):
+#        print "Executing check for permission 'VIEW' on instance %(self)s for user %(user)s wrt context %(ctx)s"\
+#             % {'self':self, 'user':user, 'ctx':context}
         if context:
             try:
                 website = context['website']
@@ -43,10 +50,16 @@ class Book(models.Model, PermissionBase):
     content = models.TextField()
     authors = models.ManyToManyField(Author)
     
+    def __unicode__(self):
+        return self.title
+    
+    
     ##-------------- authorization API----------------##
     # table-level CREATE permission
     @classmethod
     def can_create(cls, user, context):
+        print "Executing check for permission 'CREATE' on model %(cls)s for user %(user)s wrt context %(ctx)s"\
+              % {'cls':cls, 'user':user, 'ctx':context}  
         if context:
             try:
                 website = context['website']
@@ -58,6 +71,8 @@ class Book(models.Model, PermissionBase):
         return False 
     # row-level VIEW permission
     def can_view (self, user, context):
+        print "Executing check for permission 'VIEW' on instance %(self)s for user %(user)s wrt context %(ctx)s"\
+             % {'self':self, 'user':user, 'ctx':context}
         if context:
             try:
                 language = context['language']

@@ -46,6 +46,11 @@ MIDDLEWARE_CLASSES = (
 ROOT_URLCONF = ''
 SITE_ID = 1
 
+AUTHENTICATION_BACKENDS = (
+     'django.contrib.auth.backends.ModelBackend',
+     'flexi_auth.backends.ParamRoleBackend',
+)
+
 # app-specific settings
 ROLES_LIST = ()
 
