@@ -96,20 +96,26 @@ class ParamRoleBackend(object):
         # delegate non-object permission checks to Django's default backend (``ModelBackend``) - or whatever
         if obj is None:
                 return False
-                    
-        # Superuser can do everything
-        if user_obj.is_superuser:
-            return True
-
-        # if user is not authenticated or inactive, (s)he has no permissions 
-        elif user_obj.is_anonymous() or not user_obj.is_active:
-            return False
-
-        # retrieve the function implementing the permission check for the given model
-        # if ``obj.model_or_instance`` is a model instance, that function should be a (bound) instance method;
-        # if ``obj.model_or_instance`` is a model class, it should be a (bound) class method.
-        try:          
-            perm_check = getattr(obj.model_or_instance, 'can_' + perm.lower())
-        except AttributeError: #this permission check is not envisaged by the current application domain
-            raise WrongPermissionCheck(perm, obj.model_or_instance, obj.context)  
-        return perm_check(user_obj, obj.context)
+            
+        # If this permission check is not envisaged by the current application domain,
+        # raise an exception before even attempting to perform the check
+        perm_check = getattr(obj.model_or_instance, 'can_' + perm.lower(), None)  
+      
+        if perm_check:
+            # ``perm_check`` now contains the function implementing the permission check for the given model:
+            #     * if ``obj.model_or_instance`` is a model instance, that function should be a (bound) instance method;
+            #     * if ``obj.model_or_instance`` is a model class, it should be a (bound) class method.    
+            
+            # Superuser can do everything
+            if user_obj.is_superuser:
+                return True
+                
+            # if user is not authenticated or inactive, (s)he has no permissions 
+            elif user_obj.is_anonymous() or not user_obj.is_active:
+                return False   
+            
+            # in case of a "regular" user, simply perform the check
+            return perm_check(user_obj, obj.context)
+        
+        else: 
+            raise WrongPermissionCheck(perm, obj.model_or_instance, obj.context)
