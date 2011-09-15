@@ -1,3 +1,5 @@
+from flexi_auth.exceptions import WrongPermissionCheck
+
 class ParamRoleBackend(object):
     """
     A Django authorization backend for (parametric) role-based permission checking.
@@ -106,5 +108,8 @@ class ParamRoleBackend(object):
         # retrieve the function implementing the permission check for the given model
         # if ``obj.model_or_instance`` is a model instance, that function should be a (bound) instance method;
         # if ``obj.model_or_instance`` is a model class, it should be a (bound) class method.
-        perm_check = getattr(obj.model_or_instance, 'can_' + perm.lower())        
+        try:          
+            perm_check = getattr(obj.model_or_instance, 'can_' + perm.lower())
+        except AttributeError: #this permission check is not envisaged by the current application domain
+            raise WrongPermissionCheck(perm, obj.model_or_instance, obj.context)  
         return perm_check(user_obj, obj.context)
