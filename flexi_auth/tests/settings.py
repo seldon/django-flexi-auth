@@ -43,13 +43,16 @@ MIDDLEWARE_CLASSES = (
 ) 
 
 
-ROOT_URLCONF = ''
+ROOT_URLCONF = 'flexi_auth.tests.urls'
 SITE_ID = 1
 
 AUTHENTICATION_BACKENDS = (
      'django.contrib.auth.backends.ModelBackend',
      'flexi_auth.backends.ParamRoleBackend',
 )
+
+LOGIN_URL = '/login/'
+LOGIN_REDIRECT_URL = '/accounts/profile/' 
 
 # app-specific settings
 ROLES_LIST = ()

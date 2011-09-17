@@ -12,12 +12,13 @@ class Article(models.Model):
     author = models.ForeignKey(Author)
     
     def __unicode__(self):
-        return self.title
+        return "An article with title '%s'" % self.title
     
     ##-------------- authorization API----------------##
     # table-level CREATE permission
     @classmethod
     def can_create(cls, user, context):
+#        print "Now entering ``can_create`` method of model ``Article``..."
 #        print "Executing check for permission 'CREATE' on model %(cls)s for user %(user)s wrt context %(ctx)s"\
 #              % {'cls':cls, 'user':user, 'ctx':context}  
         if context:
@@ -28,6 +29,7 @@ class Article(models.Model):
         return False 
     # row-level VIEW permission
     def can_view (self, user, context):
+#        print "Now entering ``can_view`` method of model ``Article``..."
 #        print "Executing check for permission 'VIEW' on instance %(self)s for user %(user)s wrt context %(ctx)s"\
 #             % {'self':self, 'user':user, 'ctx':context}
         if context:
@@ -45,13 +47,14 @@ class Book(models.Model, PermissionBase):
     authors = models.ManyToManyField(Author)
     
     def __unicode__(self):
-        return self.title
+        return "A book with title '%s'" % self.title
     
     
     ##-------------- authorization API----------------##
     # table-level CREATE permission
     @classmethod
     def can_create(cls, user, context):
+#        print "Now entering ``can_create`` method of model ``Book``..."
 #        print "Executing check for permission 'CREATE' on model %(cls)s for user %(user)s wrt context %(ctx)s"\
 #              % {'cls':cls, 'user':user, 'ctx':context}  
         if context:
@@ -62,6 +65,7 @@ class Book(models.Model, PermissionBase):
         return False 
     # row-level VIEW permission
     def can_view (self, user, context):
+#        print "Now entering ``can_view`` method of model ``Book``..."
 #        print "Executing check for permission 'VIEW' on instance %(self)s for user %(user)s wrt context %(ctx)s"\
 #             % {'self':self, 'user':user, 'ctx':context}
         if context:

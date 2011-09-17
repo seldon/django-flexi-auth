@@ -1,12 +1,18 @@
 from django.test import TestCase
 from django.contrib.auth.models import User, Group, AnonymousUser 
 from django.contrib.contenttypes.models import ContentType
+from django.contrib.auth import SESSION_KEY
 
 from flexi_auth.utils import get_ctype_from_model_label
 from flexi_auth.exceptions import WrongPermissionCheck 
 from flexi_auth.models import ObjectWithContext
+from flexi_auth.decorators import object_permission_required
 
-from flexi_auth.tests.models import Article, Book, Author
+from flexi_auth.tests import settings
+from flexi_auth.tests.models import Article, Book, Author 
+from flexi_auth.tests.views import CallableView, normal_view
+
+
 
 
 class GetCtypeFromModelLabelTest(TestCase):
@@ -456,7 +462,7 @@ class RoleManagerTest(TestCase):
         pass
     
     def testArchiveAPIFailIfInvalidParamName(self):
-        """If the name of parameter is invalid ``.is_(active|archived)`` should raise ``RoleParameterNotAllowed``"""
+        """If the name of parameter is invalid ``.is_(active|archived)`` should raise RoleParameterNotAllowed"""
         pass
     
     def testArchiveAPIFailIfInvalidParamType(self):
@@ -468,10 +474,19 @@ class ParamRoleBackendTest(TestCase):
     """Tests for the ``ParamRoleBackend`` custom authorization backend"""
 
     def setUp(self):
-        self.user = User.objects.create(username="Ian Solo")
-        self.super_user = User.objects.create(username="Harry Potter", is_superuser=True)       
+        self.user = User.objects.create_user(username="Ian Solo", email="ian@rebels.org", password="secret")
+        
+        harry = User.objects.create_user(username="Harry Potter", email="harry@hogwarts.uk", password="secret")
+        harry.is_superuser=True
+        harry.save()
+        self.super_user = harry
+               
         self.anon_user = AnonymousUser()
-        self.inactive_user = User.objects.create(username="Albus Silente", is_active=False)
+        
+        albus = User.objects.create_user(username="Albus Silente", email="albus@hogwarts.uk", password="secret")
+        albus.is_active=False
+        albus.save()
+        self.inactive_user = albus        
         
         self.author1 = Author.objects.create(name="Bilbo", surname="Baggins")
         self.author2 = Author.objects.create(name="Luke", surname="Skywalker")
@@ -480,6 +495,7 @@ class ParamRoleBackendTest(TestCase):
         
         self.book = Book.objects.create(title="Lorem Ipsum - The book", content="Neque porro quisquam est qui dolorem ipsum quia dolor sit amet...")
         self.book.authors.add(self.author1, self.author2)
+        self.book.save()
         
     def _pack_context(self, model_or_instance, **context):
         """
@@ -668,7 +684,7 @@ class ParamRoleBackendTest(TestCase):
         obj = self._pack_context(book, language="Italian", cover="Paperback")
         self.assertRaises(WrongPermissionCheck, user.has_perm, 'MEW', obj)
         
-        ## Superusers by-pass all access-control cheks, so there is no simple way
+        ## Superusers by-pass all access-control checks, so there is no simple way
         ## to raise a ``WrongPermissionCheck`` when checking a "non-existent"
         ## permission (without patching Django !)        
         
@@ -833,52 +849,204 @@ class ParamRoleBackendTest(TestCase):
 class ObjectPermissionDecoratorTest(TestCase):
     """Tests for the ``object_permission_required()`` decorator"""
     
-    def setUp(self):
-        pass
+    # some test URLs
+    base_test_urls = (
+           '/no-inheritance/table/no-context/',    
+           '/no-inheritance/table/with-context/1/',
+           '/no-inheritance/table/with-context/2/',
+           '/no-inheritance/table/with-context/3/',
+           '/inheritance/table/no-context/',    
+           '/inheritance/table/with-context/1/',
+           '/inheritance/table/with-context/2/',
+           '/inheritance/table/with-context/3/',
+           '/no-inheritance/row/no-context/',    
+           '/no-inheritance/row/with-context/1/',
+           '/no-inheritance/row/with-context/2/',
+           '/no-inheritance/row/with-context/3/',
+           '/inheritance/row/no-context/',    
+           '/inheritance/row/with-context/1/',
+           '/inheritance/row/with-context/2/',
+           '/inheritance/row/with-context/3/',
+            )
+    
+    # which subset of the test URLs a 'regular' user is granted access to
+    base_allowed_urls = (
+               )
+    # which subset of the test URLs a 'regular' user is denied access to          
+    base_denied_urls = (              
+              )
+    ##------------------------------- Helper methods --------------------------------##    
+    def get_test_urls(self, prefix, kind='ALL'):
+
+        if kind == 'ALL':            
+            urls = [prefix + url for url in self.base_test_urls]            
+        elif kind == 'ALLOWED':
+            urls = [prefix + url for url in self.base_allowed_urls]
+        elif kind == 'DENIED':
+            urls = [prefix + url for url in self.base_denied_urls]
+        else: 
+            raise TypeError("%s is not a valid value for the `kind` argument; allowed values are 'ALL', 'ALLOWED', 'DENIED' ." % kind)
         
-    def testSuperUsersCanDoEverything(self):
+        return urls
+    
+    def get_url_prefix_from_decorator_args(self, login_url, raise_exception):
+        if raise_exception:
+            url_prefix = '/restricted_raise'
+        elif login_url:
+            url_prefix = '/restricted_login'
+        else:
+            url_prefix = '/restricted'  
+         
+        return url_prefix    
+    
+    def check_url_access(self, user, allowed_urls, forbidden_urls, login_url=None, raise_exception=False):
+        
+        if not user.is_anonymous():
+            self.login(user)
+        
+        for url in allowed_urls:
+            response = self.client.get(url)
+            self.assertEqual(response.status_code, 200, msg="Failed permission check for URL %s" % url)
+        
+        for url in forbidden_urls:
+            if raise_exception:
+                self.assertRaises(WrongPermissionCheck, self.client.get, url)
+            elif not login_url:
+                login_url = settings.LOGIN_URL
+            else:            
+                response = self.client.get(url)
+                self.assertEqual(response.status_code, 302)
+                self.assertTrue(login_url in response['Location'])             
+        self.client.logout()    
+    
+    def login(self, user_obj, password='secret'):
+        response = self.client.post('/login/', {
+            'username': user_obj.username,
+            'password': password
+                }
+            )
+    
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response['Location'].endswith(settings.LOGIN_REDIRECT_URL))
+        self.assertTrue(SESSION_KEY in self.client.session)
+    ##-------------------------------------------------------------------------------##
+    
+    
+    def setUp(self):
+        self.user = User.objects.create_user(username="Ian Solo", email="ian@rebels.org", password="secret")
+        
+        harry = User.objects.create_user(username="Harry Potter", email="harry@hogwarts.uk", password="secret")
+        harry.is_superuser=True
+        harry.save()
+        self.super_user = harry
+               
+        self.anon_user = AnonymousUser()
+        
+        albus = User.objects.create_user(username="Albus Silente", email="albus@hogwarts.uk", password="secret")
+        albus.is_active=False
+        albus.save()
+        self.inactive_user = albus        
+        
+        self.author1 = Author.objects.create(name="Bilbo", surname="Baggins")
+        self.author2 = Author.objects.create(name="Luke", surname="Skywalker")
+        
+        self.article = Article.objects.create(title="Lorem Ipsum", body="Neque porro quisquam est qui dolorem ipsum quia dolor sit amet...", author=self.author1)
+        
+        self.book = Book.objects.create(title="Lorem Ipsum - The book", content="Neque porro quisquam est qui dolorem ipsum quia dolor sit amet...")
+        self.book.authors.add(self.author1, self.author2)
+        self.book.save()
+    
+    def tearDown(self):
+        pass    
+           
+    def testCallable(self):
+        """
+        Check that ``object_permission_required()`` is assignable to callable objects.
+        """
+        article = self.article
+        
+        object_permission_required("FOO", article)(CallableView)
+        object_permission_required("FOO", article, website='www.example.com')(CallableView)        
+        object_permission_required("FOO", article, website='www.example.com', edition='morning')(CallableView)
+    
+    def testView(self):
+        """
+        Check that ``object_permission_required()`` is assignable to 'regular' views.
+        """
+        article = self.article
+    
+        object_permission_required("FOO", article)(normal_view)
+        object_permission_required("FOO", article, website='www.example.com')(normal_view)        
+        object_permission_required("FOO", article, website='www.example.com', edition='morning')(normal_view)    
+    
+        
+    def testSuperUsersCanDoEverything(self, login_url=None, raise_exception=False):
         """Test that superusers always pass permission checks"""
-        pass
-    
-    def testAnonymousUsersCanDoNothing(self):
+        url_prefix = self.get_url_prefix_from_decorator_args(login_url, raise_exception)                        
+        user = self.super_user
+        allowed_urls = self.get_test_urls(prefix=url_prefix)
+        forbidden_urls = ()
+        self.check_url_access(user, allowed_urls, forbidden_urls, login_url, raise_exception)
+           
+        
+    def testAnonymousUsersCanDoNothing(self, login_url=None, raise_exception=False):
         """Test that anonymous users always fail permission checks"""
-        pass
-    
-    def testInactiveUsersCanDoNothing(self):
+        url_prefix = self.get_url_prefix_from_decorator_args(login_url, raise_exception)
+        user = self.anon_user
+        allowed_urls = ()
+        forbidden_urls = self.get_test_urls(prefix=url_prefix)
+        self.check_url_access(user, allowed_urls, forbidden_urls, login_url, raise_exception)
+              
+        
+    def testInactiveUsersCanDoNothing(self, login_url=None, raise_exception=False):
         """Test that inactive users always fail permission checks"""
-        pass
-    
-    def testGlobalPermissionsDelegation(self):
+        
+        url_prefix = self.get_url_prefix_from_decorator_args(login_url, raise_exception)           
+        user = self.inactive_user
+        allowed_urls = ()
+        forbidden_urls = self.get_test_urls(prefix=url_prefix)
+        self.check_url_access(user, allowed_urls, forbidden_urls, login_url, raise_exception)
+        
+        
+    def testGlobalPermissionsDelegation(self, login_url=None, raise_exception=False):
         """If checking a non-object (global) permission, raise ``WrongPermissionCheck``"""
         pass
     
-    def testWrongPermissionCheck(self):
+    def testWrongPermissionCheck(self, login_url=None, raise_exception=False):
         """If requesting a permission check not implemented by a model, raise ``WrongPermissionCheck`` """
         pass
     
-    def testTableLevelPermission(self):
+    def testTableLevelPermission(self, login_url=None, raise_exception=False):
         """Tests for table(class)-level permission-checking"""
-    
-    def testRowLevelPermission(self):
+        url_prefix = self.get_url_prefix_from_decorator_args(login_url, raise_exception)                 
+        user = self.user
+        allowed_urls = [url for url in self.get_test_urls(prefix=url_prefix, kind='ALLOWED') if ('/table/' in url)]
+        forbidden_urls = [url for url in self.get_test_urls(prefix=url_prefix, kind='DENIED') if ('/table/' in url)]
+        self.check_url_access(user, allowed_urls, forbidden_urls, login_url, raise_exception)
+        
+    def testRowLevelPermission(self, login_url=None, raise_exception=False):
         """Tests for row(instance)-level permission-checking"""
-        pass
+        url_prefix = self.get_url_prefix_from_decorator_args(login_url, raise_exception)                 
+        user = self.user
+        allowed_urls = [url for url in self.get_test_urls(prefix=url_prefix, kind='ALLOWED') if ('/row/' in url)]
+        forbidden_urls = [url for url in self.get_test_urls(prefix=url_prefix, kind='DENIED') if ('/row/' in url)]
+        self.check_url_access(user, allowed_urls, forbidden_urls, login_url, raise_exception)        
     
-    def testInheritedPermission(self):
+    def testInheritedPermission(self, login_url=None, raise_exception=False):
         """A model subclassing ``PermissionBase`` should inherit all default permission-checking methods"""
-        pass
+        url_prefix = self.get_url_prefix_from_decorator_args(login_url, raise_exception)                 
+        user = self.user
+        # FIXME: check if test is representative !
+        allowed_urls = [url for url in self.get_test_urls(prefix=url_prefix, kind='ALLOWED') if ('/inheritance/' in url)]
+        forbidden_urls = [url for url in self.get_test_urls(prefix=url_prefix, kind='DENIED') if ('/inheritance/' in url)]
+        self.check_url_access(user, allowed_urls, forbidden_urls, login_url, raise_exception)        
+    
    
-    def testOverridingPermission(self):
+    def testOverridingPermission(self, login_url=None, raise_exception=False):
         """A model subclassing ``PermissionBase`` should be able to override any default permission-checking methods"""
-        pass
+        url_prefix = self.get_url_prefix_from_decorator_args(login_url, raise_exception)                 
+        user = self.user
+        allowed_urls = () # FIXME
+        forbidden_urls = () # FIXME
+        self.check_url_access(user, allowed_urls, forbidden_urls, login_url, raise_exception)        
     
-    def testLoginURLNoRaise(self):
-        """If the ``login_url`` parameter is set and ``raise_exception`` is ``False``, redirect to the login page if check fails"""
-        pass 
-    
-    def testNoLoginURLNoRaise(self):
-        """If the ``login_url`` parameter isn't set and ``raise_exception`` is ``False``, redirect to the default login page if check fails"""
-        pass 
-    
-    def testLoginURLRaise(self):
-        """If the ``login_url`` parameter is set but ``raise_exception`` is ``True``, raise ``PermissionDenied`` if check fails"""
-        pass        
