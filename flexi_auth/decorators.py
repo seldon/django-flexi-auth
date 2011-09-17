@@ -15,9 +15,8 @@ def object_permission_required(perm, obj, login_url=None, raise_exception=False,
     # CREDITS: just adapting Django's built-in ``@permission_required()`` decorator
     def check_perms(user):
         # First check if the user has the permission (even anonymous users)
-        model_or_instance = obj
-        obj = ObjectWithContext(model_or_instance, context)
-        if user.has_perm(perm, obj):
+        contextual_obj = ObjectWithContext(obj, context)
+        if user.has_perm(perm, contextual_obj):
             return True
         # In case the 403 handler should be called raise the exception
         if raise_exception:
