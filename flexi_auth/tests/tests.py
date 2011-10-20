@@ -1,11 +1,16 @@
 from django.test import TestCase
+from django.db import IntegrityError 
 from django.contrib.auth.models import User, Group, AnonymousUser 
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.auth import SESSION_KEY
 
-from flexi_auth.utils import get_ctype_from_model_label, register_parametric_role
+from permissions.models import Role
+
+from flexi_auth.utils import get_ctype_from_model_label, register_parametric_role, _parametric_role_as_dict,\
+_is_valid_parametric_role_dict_repr, _compare_parametric_roles
+
 from flexi_auth.exceptions import WrongPermissionCheck 
-from flexi_auth.models import ObjectWithContext
+from flexi_auth.models import ObjectWithContext, Param, ParamRole
 from flexi_auth.decorators import object_permission_required
 from flexi_auth.exceptions import RoleParameterNotAllowed
 
@@ -79,79 +84,175 @@ class ParamModelTest(TestCase):
     """Test behaviour of the ``Param`` model"""
 
     def setUp(self):
-        pass
+        author = Author.objects.create(name="Bilbo", surname="Baggins")
+        self.article = Article.objects.create(title="Lorem Ipsum", body="Neque porro quisquam est qui dolorem ipsum quia dolor sit amet...", author=author)
     
     def testParamUniqueness(self):
         """No duplicated ``Param``'s instances should exist in the DB"""
-        pass
+        Param.objects.create(name='article', value=self.article)
+        self.assertRaises(IntegrityError, Param.objects.create, name='article', value=self.article)
 
 class ParamRoleAsDictTest(TestCase):
     """Tests for the ``parametric_role_as_dict()`` helper function"""
     
     def setUp(self):
-        pass
+        self.author1 = Author.objects.create(name="Bilbo", surname="Baggins")
+        self.author2 = Author.objects.create(name="Luke", surname="Skywalker")
+        
+        self.magazine1 = Magazine.objects.create(name="Lorem Magazine", printing=1)
+        self.magazine2 = Magazine.objects.create(name="Ipsum Magazine", printing=100)
+        
+        self.article = Article.objects.create(title="Lorem Ipsum", body="Neque porro quisquam est qui dolorem ipsum quia dolor sit amet...", author=self.author1)
+        self.article.published_to.add(self.magazine1, self.magazine2)
+        self.article.save()
+        
+        self.book = Book.objects.create(title="Lorem Ipsum - The book", content="Neque porro quisquam est qui dolorem ipsum quia dolor sit amet...")
+        self.book.authors.add(self.author1, self.author2)
+        self.book.save()
+    
+        
+        self.pr1 = register_parametric_role('EDITOR', article=self.article)
+        self.pr2 = register_parametric_role('PUBLISHER', book=self.book)
+        self.pr3 = register_parametric_role('SPONSOR', article=self.article, magazine=self.magazine1)     
     
     def testConversionOK(self):
         """If a ``ParamRole`` instance is passed, return a dictionary representing it"""
-        pass
+        role = Role.objects.get(name='EDITOR')
+        expected_dict = {'role':role, 'params':{'article': self.article}}
+        self.assertEqual(_parametric_role_as_dict(self.pr1), expected_dict)
+        
+        role = Role.objects.get(name='PUBLISHER')
+        expected_dict = {'role':role, 'params':{'book': self.book}}
+        self.assertEqual(_parametric_role_as_dict(self.pr2), expected_dict)
+        
+        role = Role.objects.get(name='SPONSOR')
+        expected_dict = {'role':role, 'params':{'article': self.article, 'magazine': self.magazine1}}
+        self.assertEqual(_parametric_role_as_dict(self.pr3), expected_dict)   
+    
     
     def testConversionFail(self):
         """If the argument isn't a ``ParamRole`` instance, raise a ``TypeError``"""
-        pass
+        role = Role.objects.get(name='EDITOR')
+        self.assertRaises(TypeError, _parametric_role_as_dict, None)
+        self.assertRaises(TypeError, _parametric_role_as_dict, 1)
+        self.assertRaises(TypeError, _parametric_role_as_dict, role)
 
         
 class ParamRoleAsDictValidationTest(TestCase):
     """Tests for the ``_is_valid_parametric_role_dict_repr()`` helper function"""
     
     def setUp(self):
-        pass
+        self.role = Role.objects.create(name='SPONSOR')
+        self.author = Author.objects.create(name="Bilbo", surname="Baggins")
+        self.magazine = Magazine.objects.create(name="Lorem Magazine", printing=1)
+        self.article = Article.objects.create(title="Lorem Ipsum", body="Neque porro quisquam est qui dolorem ipsum quia dolor sit amet...", author=self.author)
+        
     
     def testValidationOK(self):
         """If a dictionary has the right structure to represent a parametric role, return ``True``"""
-        pass
+        p_role_dict = {'role':self.role, 'params':{'article': self.article, 'magazine': self.magazine}}
+        self.assertTrue(_is_valid_parametric_role_dict_repr(p_role_dict))
     
     def testValidationFailIfNotDict(self): 
         """If passed dictionary hasn't expected keys, return ``False``  """
-        pass
+        p_role_dict = {'foo':self.role, 'params':{'article': self.article, 'magazine': self.magazine}}
+        self.assertFalse(_is_valid_parametric_role_dict_repr(p_role_dict))
+        
+        p_role_dict = {'role':self.role, 'foo':{'article': self.article, 'magazine': self.magazine}}
+        self.assertFalse(_is_valid_parametric_role_dict_repr(p_role_dict))
+        
+        p_role_dict = {'role':self.role, 'params':{'article': self.article, 'magazine': self.magazine}, 'foo':None}
+        self.assertFalse(_is_valid_parametric_role_dict_repr(p_role_dict))
     
     def testValidationFailIfNotRole(self): 
         """If ``role`` key is not a ``Role`` model instance, return ``False``"""
-
-        pass
+        p_role_dict = {'role':1, 'params':{'article': self.article, 'magazine': self.magazine}}
+        self.assertFalse(_is_valid_parametric_role_dict_repr(p_role_dict))        
 
     def testValidationFailIfNotParams(self): 
         """If ``params`` key is not a dictionary, return ``False``"""
-        pass
+        p_role_dict = {'role':self.role, 'params':1}
+        self.assertFalse(_is_valid_parametric_role_dict_repr(p_role_dict)) 
 
         
 class ParamRoleComparisonTest(TestCase):
     """Tests for the ``_compare_parametric_roles()`` helper function"""
     
     def setUp(self):
-        pass
+        self.author = Author.objects.create(name="Bilbo", surname="Baggins")
+        self.magazine = Magazine.objects.create(name="Lorem Magazine", printing=1)
+        self.article = Article.objects.create(title="Lorem Ipsum", body="Neque porro quisquam est qui dolorem ipsum quia dolor sit amet...", author=self.author)
+        self.book = Book.objects.create(title="Lorem Ipsum - The book", content="Neque porro quisquam est qui dolorem ipsum quia dolor sit amet...")
+        
+        self.role1 = Role.objects.create(name='FOO')
+        self.role2 = Role.objects.create(name='BAR')
+              
+        self.p1 = Param.objects.create(name='magazine', value=self.magazine)
+        self.p2 = Param.objects.create(name='article', value=self.article)
+        self.p3 = Param.objects.create(name='book', value=self.book)
+        
+        pr1 = ParamRole.objects.create(role=self.role1)
+        pr1.param_set.add(self.p1)
+        pr1.param_set.add(self.p2)
+        pr1.save()
+        self.pr1 = pr1
+        
+        pr2 = ParamRole.objects.create(role=self.role1)
+        pr2.param_set.add(self.p1)
+        pr2.param_set.add(self.p2)
+        pr2.save()
+        self.pr2 = pr2
+        
+        pr3 = ParamRole.objects.create(role=self.role2)
+        pr3.param_set.add(self.p1)
+        pr3.param_set.add(self.p2)
+        pr3.save()
+        self.pr3 = pr3
+        
+        pr4 = ParamRole.objects.create(role=self.role1)
+        pr4.param_set.add(self.p3)
+        pr4.param_set.add(self.p2)
+        pr4.save()
+        self.pr4 = pr4 
     
     def testComparisonOK(self):
         """If arguments describe the same parametric role, return ``True``"""
-        pass
+        # compare two ParamRole instances
+        self.assertTrue(_compare_parametric_roles(self.pr1, self.pr2))
+                
+        # compare two dictionary representations
+        p_role_dict_1 = {'role':self.role1, 'params':{'article': self.article, 'magazine': self.magazine}}
+        p_role_dict_2 = {'role':self.role1, 'params':{'magazine': self.magazine, 'article': self.article}}
+        self.assertTrue(_compare_parametric_roles(p_role_dict_1, p_role_dict_2))
+        
+        # compare one ParamRole instance and one dictionary representation
+        self.assertTrue(_compare_parametric_roles(p_role_dict_1, self.pr2))
+        self.assertTrue(_compare_parametric_roles(p_role_dict_2, self.pr1))
     
     def testFailIfNotSameKind(self):
         """If arguments describe parametric roles of different kind, return ``False``"""
-        pass
+        self.assertFalse(_compare_parametric_roles(self.pr1, self.pr3))
     
     def testFailIfNotSameParameters(self):
         """If arguments describe parametric roles with different parameters, return ``False``"""
-        pass
+        self.assertFalse(_compare_parametric_roles(self.pr1, self.pr4))
     
     def testErrorIfTooManyArguments(self): 
         """If more than two arguments are given, raise ``TypeError``"""
-        pass
+        self.assertRaises(TypeError, _compare_parametric_roles, self.pr1, self.pr2, self.pr2)
+        self.assertRaises(TypeError, _compare_parametric_roles, self.pr1, self.pr2, None)
     
     def testErrorIfNotEnoughArguments(self):
         """If less than two arguments are given, raise ``TypeError``"""
+        self.assertRaises(TypeError, _compare_parametric_roles, self.pr1)
+        self.assertRaises(TypeError, _compare_parametric_roles)
     
     def testErrorIfInvalidArguments(self):
         """If an argument is neither a ParamRole instance nor a valid dictionary representation for it, raise ``TypeError``"""
-
+        self.assertRaises(TypeError, _compare_parametric_roles, self.pr1, None)
+        self.assertRaises(TypeError, _compare_parametric_roles, None, self.pr1)
+        self.assertRaises(TypeError, _compare_parametric_roles, self.pr1, {})
+        self.assertRaises(TypeError, _compare_parametric_roles, {}, self.pr1)
         
 class ParamRoleValidationTest(TestCase):
     """Tests for the ``_validate_parametric_role`` function"""
