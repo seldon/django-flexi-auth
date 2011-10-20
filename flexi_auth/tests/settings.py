@@ -1,3 +1,5 @@
+from django.utils.translation import ugettext_lazy as _ 
+
 import os
 DIRNAME = os.path.dirname(__file__)
 
@@ -55,8 +57,20 @@ LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/accounts/profile/' 
 
 # app-specific settings
-ROLES_LIST = ()
+ROLES_LIST = (
+     ('EDITOR', _('Editor')),
+     ('PUBLISHER', 'Publisher'),
+     ('SPONSOR', 'Sponsor'),     
+)
 
-PARAM_CHOICES = ()
+PARAM_CHOICES = (
+     ('article', _('Article')),
+     ('book', 'Book'),
+     ('magazine', 'Magazine'),               
+)
 
-VALID_PARAMS_FOR_ROLES = {}
+VALID_PARAMS_FOR_ROLES = {
+     'EDITOR' : {'article': 'tests.Article'},
+     'PUBLISHER' : {'book': 'tests.Book'},
+     'SPONSOR' : {'article': 'tests.Article', 'magazine': 'tests.Magazine'}, 
+}

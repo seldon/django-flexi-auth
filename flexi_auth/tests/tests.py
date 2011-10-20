@@ -3,13 +3,14 @@ from django.contrib.auth.models import User, Group, AnonymousUser
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.auth import SESSION_KEY
 
-from flexi_auth.utils import get_ctype_from_model_label
+from flexi_auth.utils import get_ctype_from_model_label, register_parametric_role
 from flexi_auth.exceptions import WrongPermissionCheck 
 from flexi_auth.models import ObjectWithContext
 from flexi_auth.decorators import object_permission_required
+from flexi_auth.exceptions import RoleParameterNotAllowed
 
 from flexi_auth.tests import settings
-from flexi_auth.tests.models import Article, Book, Author 
+from flexi_auth.tests.models import Article, Book, Author, Magazine
 from flexi_auth.tests.views import CallableView, normal_view
 
 
@@ -19,7 +20,7 @@ class GetCtypeFromModelLabelTest(TestCase):
     """Tests for the ``get_ctype_from_model_label()`` function"""
     
     def setUp(self):
-            pass
+        pass
     
     def testOK(self):
         """Verify the right ContentType is returned if the model label is good"""
@@ -42,15 +43,36 @@ class ParamByNameTest(TestCase):
     """Test if parameters of a parametric role can be accessed by name"""
 
     def setUp(self):
-        pass
-    
+        self.author1 = Author.objects.create(name="Bilbo", surname="Baggins")
+        self.author2 = Author.objects.create(name="Luke", surname="Skywalker")
+        
+        self.magazine1 = Magazine.objects.create(name="Lorem Magazine", printing=1)
+        self.magazine2 = Magazine.objects.create(name="Ipsum Magazine", printing=100)
+        
+        self.article = Article.objects.create(title="Lorem Ipsum", body="Neque porro quisquam est qui dolorem ipsum quia dolor sit amet...", author=self.author1)
+        self.article.published_to.add(self.magazine1, self.magazine2)
+        self.article.save()
+        
+        self.book = Book.objects.create(title="Lorem Ipsum - The book", content="Neque porro quisquam est qui dolorem ipsum quia dolor sit amet...")
+        self.book.authors.add(self.author1, self.author2)
+        self.book.save()
+            
+        self.pr1 = register_parametric_role('EDITOR', article=self.article)
+        self.pr2 = register_parametric_role('PUBLISHER', book=self.book)
+        self.pr3 = register_parametric_role('SPONSOR', article=self.article, magazine=self.magazine1)        
+#    
     def testGetOK(self):
         """Verify that an existing parameter can be retrieved by its name"""
-        pass
-    
+        self.assertEqual(self.pr1.article, self.article)
+        self.assertEqual(self.pr2.book, self.book)
+        self.assertEqual(self.pr3.article, self.article)
+        self.assertEqual(self.pr3.magazine, self.magazine1)
+
     def testGetFailIfParameterNotSet(self):
-        """When trying to retrieve an unset parameter, raise ``RoleParameterNotAllowed``"""
-        pass
+        """When trying to retrieve an unset parameter, raise ``AttributeError``"""
+        self.assertRaises(AttributeError, lambda x: self.pr1.book, 1)
+        self.assertRaises(AttributeError, lambda x: self.pr2.article, 1)
+        self.assertRaises(AttributeError, lambda x: self.pr3.book, 1)
 
 
 class ParamModelTest(TestCase):

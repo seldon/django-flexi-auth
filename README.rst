@@ -45,8 +45,8 @@ VALID_PARAMS_FOR_ROLES
 :Name: VALID_PARAMS_FOR_ROLES
 :Type: 
     A dictionary made by entries of the form ``{<role name>: {<parameter name>: <parameter type>, ..}}``, where ``<role name>`` is the name of one of the 
-    general roles allowed within the application domain, ``<parameter name>`` is the name of one of the parameters that can be tied to that role 
-    (as declared by ``PARAM_CHOICES``), and ``<parameter type>`` is the type of that parameter (a model), expressed as a string of the format 
+    general roles allowed within the application domain, ``<parameter name>`` is the name of one of the parameters that may be bound to that role 
+    (must be an element of ``PARAM_CHOICES``), and ``<parameter type>`` is the type of that parameter (a model), expressed as a string of the format 
     ``app_label.model_name``.    
 :Default: ``{}``
 :Description: 

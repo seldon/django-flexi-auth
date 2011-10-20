@@ -6,10 +6,15 @@ class Author(models.Model):
     name = models.CharField(max_length=50)
     surname = models.CharField(max_length=50)
 
+class Magazine(models.Model):
+    name = models.CharField(max_length=50)
+    printing = models.IntegerField()
+
 class Article(models.Model):
     title = models.CharField(max_length=50)
     body = models.TextField()
     author = models.ForeignKey(Author)
+    published_to = models.ManyToManyField(Magazine)
     
     def __unicode__(self):
         return "An article with title '%s'" % self.title

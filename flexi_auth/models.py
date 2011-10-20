@@ -1,6 +1,7 @@
 from django.db import models
 from django.db.models import signals
 from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
 from django.utils.translation import ugettext, ugettext_lazy as _
 
 from django.contrib.auth.models import User, Group 
@@ -10,6 +11,8 @@ from django.contrib.contenttypes import generic
 from permissions.models import Role
 
 from flexi_auth.managers import RoleManager
+
+import functools 
 
 ROLES_DICT = dict(settings.ROLES_LIST)
 
@@ -57,51 +60,7 @@ class PermissionBase(object):
     def can_delete(self, user, context):
         return True
     
-    
-class ParamByName(object):
-    """
-    Helper class used to setup a convenient access API for ``ParamRole``'s parameters.
-    """
-
-    def _get_param(self, param_role, name):
-        """
-        If this role has a "%s" parameter, return it; else return None
-        """
-        # TODO: if a parameter is not set, an exception should be raised 
-        # Retrieve the value of parameter named ``name``; if it's not set, return ``None``
-        # Duck typing
-        try: 
-            rv = param_role.param_set.get(name=name).value
-        except Param.DoesNotExist:
-            rv = None
-
-        return rv
-
-#    def set_param(self, param_role, name, value):
-#
-#        param_names = map(lambda x : x[0], Param.PARAM_CHOICES)
-#
-#        #Sanity check
-#        if name in param_names:
-#            # TODO: check also content type
-#            param_role.param_set.add(Param(name=name, param=value))
-#        else:
-#            raise NameError(ugettext("Wrong param name %s. Allowed param names are %s") % (value, param_names))
-
-    def contribute_to_class(self, cls, name):
-        """
-        Create a property to retrieve role parameters by name
-        """
-
-        p = property(
-            lambda obj : self._get_param(obj, name), 
-            None,
-            None, 
-            self._get_param.__doc__ % name
-        )
-
-        setattr(cls, name, p)
-
+       
 class Param(models.Model):
     """
     A trivial wrapper model class around a generic ``ForeignKey``; 
@@ -123,7 +82,67 @@ class Param(models.Model):
     class Meta:
         # forbid duplicated ``Param`` entries in the DB
         unique_together = ('name', 'content_type', 'object_id')
+        
+        
+def param_by_name(cls):
+    """
+    This function is meant to be used as a class decorator for the ``ParamRole`` model.
+    Its job is to dynamically augmenting the ``ParamRole`` object interface 
+    by automagically adding accessor methods (implemented as properties) to ease the
+    task of retrieving the parameters bound to a parametric role.
+    
+    This way, a convenience access API is automatically built and added - at runtime -  
+    to the ``ParamRole`` model, based on the domain-specific set of allowed parameters
+    (as declared via the ``settings.PARAM_CHOICES`` config option.
+    
+    Usage
+    =====
+    To retrieve the value of parameter ``<param_name>`` bound to the parametric role
+    ``p_role`` (a ``ParamRole`` instance), just use ``p_role.<param_name>``.
+     
+    If ``p_role`` doesn't have a parameter named ``<param_name>`` attached to it, 
+    a ``AttributeError`` exception is raised. 
+                     
+    Note that this is, by design, a read-only access; parameter assignment is managed by the 
+    ``register_parametric_role()`` factory function.    
+    """
+  
+    # retrieve allowed parameter names for project configuration
+    allowed_params = [name for (name, desc) in settings.PARAM_CHOICES]
 
+    def _get_param(p_role, name):
+        """
+        If this role has a "%s" parameter, return it; 
+        else, raise an ``AttributeError`` exception.
+        """
+
+        try: 
+            return p_role.param_set.get(name=name).value
+        except Param.DoesNotExist:
+            role_name = p_role.role.name
+            raise AttributeError("The parametric role %(p_role)s doesn't have a `%(name)s' parameter" % {'p_role': p_role, 'name': name})    
+   
+    for name in allowed_params:
+        # prevent overriding of existing class attributes
+        if name in cls.__dict__.keys():            
+            msg = """`%(name)s' is not a valid name for a parameter, 
+                since the model class %(cls)s already contains an attribute 
+                with that name"""
+            raise ImproperlyConfigured(msg % {'name': name, 'cls': cls})
+        # value of the ``name`` argument is already known, so stash it for later calls
+        fget = functools.partial(_get_param, name=name)
+        doc = _get_param.__doc__ % name  
+        p = property(
+            fget, 
+            None,
+            None, 
+            doc,
+        )
+        # FIXME: what happens when string ``name`` is not a valid Python variable's identifier ? 
+        setattr(cls, name, p)
+    return cls
+
+@param_by_name
 class ParamRole(models.Model):
     """
     A custom role model class inspired by ``django-permissions``'s ``Role`` model.
@@ -136,24 +155,8 @@ class ParamRole(models.Model):
     # the basic ``Role`` to which additional context info is added (binding it to parameters)
     role = models.ForeignKey(Role)
     # parameters describing the context attached to this role 
-    param_set = models.ManyToManyField(Param)
-    
-    ## A simple API providing easier access to the parameters attached to this role.
-    # Usage: to retrieve the value of parameter ``<param_name>`` from the parametric role
-    # instance ``p_role``, just use ``p_role.<param_name>`` 
-    # If ``p_role`` doesn't have a parameter ``<param_name>`` attached to it, 
-    # a ``RoleParameterNotAllowed`` exception is raised. 
-    
-    # Since the set of allowed parameters is domain-specific 
-    # (declared using the project-level ``PARAM_CHOICES`` setting),
-    # the access API must be dynamically built; to this end, we leverage the  
-    # ``contribute_to_class`` Django machinery.
-                     
-    # note that this access is read-only; parameter assignment is managed by the 
-    #``register_parametric_role()`` factory function.
-    
-    # TOOD: use ``ParamByName()`` field-like object to implement the access API for parameters.
-    
+    param_set = models.ManyToManyField(Param)    
+
     objects = RoleManager()
 
     def __unicode__(self):
@@ -170,7 +173,7 @@ class ParamRole(models.Model):
         If this role has only one parameter, return it; else raise a ``MultipleObjectsReturned`` exception.
         
         This is just a convenience method, useful when dealing with simple parametric roles 
-        depending only on one parameter (a common situation).    
+        depending only on one parameter (a common scenario).    
         """
         
         params = self.params
@@ -190,12 +193,10 @@ class ParamRole(models.Model):
         * If ``role_name`` is not a valid identifier for a role, raises ``RoleNotAllowed`` exception.
         * If ``params`` contains an invalid parameter name, raises ``RoleParameterNotAllowed`` exception.
         * If provided parameter names are valid, but one of them is assigned to a wrong type, 
-          (based on domain constraints), raises  ``RoleParameterWrongSpecsProvided`` exception.
-                  
+          (based on domain constraints), raises  ``RoleParameterWrongSpecsProvided`` exception.                  
         """
         
         qs = cls.objects.get_param_roles(role_name, **params)
-        # TODO UNITTEST: write unit tests for this method
         if len(qs) > 1:
             raise cls.MultipleObjectsReturned("Warning: duplicate parametric role instances in the DB: %s with params %s" % role_name, params) 
         return qs[0]
@@ -285,6 +286,7 @@ class ParamRole(models.Model):
         return not self.is_active()  
     
     ##---------------------------------------##
+
 
 class PrincipalParamRoleRelation(models.Model):
     """
