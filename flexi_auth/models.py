@@ -18,11 +18,15 @@ ROLES_DICT = dict(settings.ROLES_LIST)
 
 class ObjectWithContext(object):
     """
-    TODO: write docstring
+    ``ObjectWithContext`` is just a convenience class, used for packing together 
+    a model instance and context object (implemented as a dictionary), before
+    passing them to Django's ``User.has_perm()`` permission-check API.
+    
+    See `here <https://github.com/seldon/django-flexi-auth/issues/9>`_  for motivations.     
     """
-    def __init__(self, model_or_instance, context):
+    def __init__(self, model_or_instance, context=None):
         self.model_or_instance = model_or_instance
-        self.context = context
+        self.context = context or {}
     
     def __str__(self):
         return "Object '%(obj)s' with context '%(ctx)s'" % {'obj':self.model_or_instance, 'ctx':self.context}
