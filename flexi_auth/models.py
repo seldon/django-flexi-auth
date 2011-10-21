@@ -124,7 +124,7 @@ def param_by_name(cls):
             return p_role.param_set.get(name=name).value
         except Param.DoesNotExist:
             role_name = p_role.role.name
-            raise AttributeError("The parametric role %(p_role)s doesn't have a `%(name)s' parameter" % {'p_role': p_role, 'name': name})    
+            raise AttributeError(_(u"The parametric role %(p_role)s doesn't have a `%(name)s' parameter") % {'p_role': p_role, 'name': name})    
    
     for name in allowed_params:
         # prevent overriding of existing class attributes
@@ -165,7 +165,7 @@ class ParamRole(models.Model):
 
     def __unicode__(self):
         param_str_list = ["%s" % s for s in self.params]
-        return u"%(role)s for %(params)s" % { 'role' : ROLES_DICT[self.role.name], 'params':  ", ".join(param_str_list)}
+        return _(u"%(role)s for %(params)s") % { 'role' : ROLES_DICT[self.role.name], 'params':  ", ".join(param_str_list)}
     
     @property
     def params(self):
