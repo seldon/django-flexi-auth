@@ -29,7 +29,7 @@ class ObjectWithContext(object):
         self.context = context or {}
     
     def __unicode__(self):
-        return _(u"Object '%(obj)s' with context '%(ctx)s'" % {'obj':self.model_or_instance, 'ctx':self.context})
+        return _(u"Object '%(obj)s' with context '%(ctx)s'") % {'obj':self.model_or_instance, 'ctx':self.context}
         
 
 class PermissionBase(object):
