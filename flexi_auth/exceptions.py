@@ -5,7 +5,7 @@ class RoleNotAllowed(Exception):
         self.value = value
 
     def __str__(self):
-        return _("Role %s is not allowed in current application domain") % self.value
+        return _(u"Role %s is not allowed in current application domain") % self.value
 
 class RoleParameterNotAllowed(Exception):
 
@@ -15,7 +15,7 @@ class RoleParameterNotAllowed(Exception):
         self.wrong_param = wrong_param
 
     def __str__(self):
-        return _("Wrong param '%(wp)s' provided for role %(r)s. Only %(pl)s are relatable to this role") % \
+        return _(u"Wrong param '%(wp)s' provided for role %(r)s. Only %(pl)s are relatable to this role") % \
                   { 'wp' : self.wrong_param, 'r' : self.role_name, 'pl' : ", ".join(self.allowed_params) }
 
 
@@ -26,7 +26,7 @@ class RoleParameterWrongSpecsProvided(Exception):
         self.param_specs = param_specs
 
     def __str__(self):
-        return _("Wrong specs %(s)s for role %(r)s") % \
+        return _(u"Wrong specs %(s)s for role %(r)s") % \
                     { 's' : self.param_specs, 'r' : self.role_name }
 
 class WrongPermissionCheck(Exception):
@@ -36,7 +36,7 @@ class WrongPermissionCheck(Exception):
         self.context = context
 
     def __str__(self):
-        return _("Can't check permission %(perm)s on object %(obj)s with respect to context (ctx)s") % \
+        return _(u"Can't check permission %(perm)s on object %(obj)s with respect to context (ctx)s") % \
                     { 'perm' : self.perm, 'obj' : self.obj, 'ctx' : self.context }
     
     

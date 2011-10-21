@@ -29,7 +29,7 @@ class ObjectWithContext(object):
         self.context = context or {}
     
     def __unicode__(self):
-        return _(u"Object '%(obj)s' with context '%(ctx)s'" % {'obj':self.model_or_instance, 'ctx':self.context})
+        return _(u"Object '%(obj)s' with context '%(ctx)s'") % {'obj':self.model_or_instance, 'ctx':self.context}
         
 
 class PermissionBase(object):
@@ -86,7 +86,8 @@ class Param(models.Model):
     class Meta:
         # forbid duplicated ``Param`` entries in the DB
         unique_together = ('name', 'content_type', 'object_id')
-        
+        verbose_name = _('Parameter')
+        verbose_name_plural = _('Parameters')
         
 def param_by_name(cls):
     """
@@ -129,10 +130,10 @@ def param_by_name(cls):
     for name in allowed_params:
         # prevent overriding of existing class attributes
         if name in cls.__dict__.keys():            
-            msg = """`%(name)s' is not a valid name for a parameter, 
+            msg = u"""`%(name)s' is not a valid name for a parameter, 
                 since the model class %(cls)s already contains an attribute 
                 with that name"""
-            raise ImproperlyConfigured(msg % {'name': name, 'cls': cls})
+            raise ImproperlyConfigured(_(msg) % {'name': name, 'cls': cls})
         # value of the ``name`` argument is already known, so stash it for later calls
         fget = functools.partial(_get_param, name=name)
         doc = _get_param.__doc__ % name  
@@ -182,7 +183,7 @@ class ParamRole(models.Model):
         
         params = self.params
         if len(params) > 1:
-            raise Param.MultipleObjectsReturned("This parametric role has more than one parameter: %s" % params)
+            raise Param.MultipleObjectsReturned(_("This parametric role has more than one parameter: %s") % params)
         return params[0]   
     
     @classmethod
@@ -202,7 +203,7 @@ class ParamRole(models.Model):
         
         qs = cls.objects.get_param_roles(role_name, **params)
         if len(qs) > 1:
-            raise cls.MultipleObjectsReturned("Warning: duplicate parametric role instances in the DB: %s with params %s" % role_name, params) 
+            raise cls.MultipleObjectsReturned(_("Warning: duplicate parametric role instances in the DB: %(role)s with params %(params)s") % {'role': role_name, 'params': params}) 
         return qs[0]
 
     def add_principal(self, principal):
@@ -221,7 +222,7 @@ class ParamRole(models.Model):
             xobj, xcreated = PrincipalParamRoleRelation.objects.get_or_create(group=principal, role=self)
             #TODO LOG: whether add_principal is called and xreated = False. It should not happen...
         else:
-            raise TypeError("The principal must be either a User instance or a Group instance.")   
+            raise TypeError(_("The principal must be either a User instance or a Group instance."))   
 
             
     def get_groups(self):
@@ -290,7 +291,11 @@ class ParamRole(models.Model):
         return not self.is_active()  
     
     ##---------------------------------------##
-
+    
+    class Meta:
+        verbose_name = _('Parametric Role')
+        verbose_name_plural = _('Parametric Roles')
+    
 
 class PrincipalParamRoleRelation(models.Model):
     """
@@ -333,7 +338,7 @@ class PrincipalParamRoleRelation(models.Model):
         elif isinstance(principal, Group):
             self.group = principal
         else:
-            raise TypeError("The principal must be either a User instance or a Group instance.")
+            raise TypeError(_("The principal must be either a User instance or a Group instance."))
 
     principal = property(get_principal, set_principal)    
     
