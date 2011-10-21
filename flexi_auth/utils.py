@@ -1,6 +1,7 @@
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.auth.models import User, Group
 from django.conf import settings
+from django.utils.translation import ugettext_lazy as _
 
 from permissions.models import Role
 
@@ -180,7 +181,7 @@ def _parametric_role_as_dict(p_role):
             dict_repr['params'][name] = value
         return dict_repr        
     else:
-        raise TypeError('Argument must be a ParamRole model instance.')
+        raise TypeError(_("Argument must be a ParamRole model instance."))
     
     
 
@@ -236,7 +237,7 @@ def _compare_parametric_roles(p_role1, p_role2):
         elif _is_valid_parametric_role_dict_repr(p_roles[i]):
             pass
         else:
-            raise TypeError("%s is neither a ParamRole instance nor a valid dictionary representation of a parametric role." % p_roles[i])
+            raise TypeError(_("%s is neither a ParamRole instance nor a valid dictionary representation of a parametric role.") % p_roles[i])
         
     return p_roles[0] == p_roles[1]
          
@@ -270,7 +271,7 @@ def add_parametric_role(principal, role):
             PrincipalParamRoleRelation.objects.create(group=principal, role=role)
             return True
     else:
-        raise TypeError("The principal must be either a User instance or a Group instance.")
+        raise TypeError(_("The principal must be either a User instance or a Group instance."))
 
     return False
 
@@ -296,7 +297,7 @@ def remove_parametric_role(principal, role):
         elif isinstance(principal, Group):
             ppr = PrincipalParamRoleRelation.objects.get(group=principal, role=role)
         else:
-            raise TypeError("The principal must be either a User instance or a Group instance.")
+            raise TypeError(_("The principal must be either a User instance or a Group instance."))
 
     except PrincipalParamRoleRelation.DoesNotExist:
         return False
@@ -322,7 +323,7 @@ def clear_parametric_roles(principal):
     elif isinstance(principal, Group):
         pprs = PrincipalParamRoleRelation.objects.filter(group=principal)
     else:
-        raise TypeError("The principal must be either a User instance or a Group instance.")   
+        raise TypeError(_("The principal must be either a User instance or a Group instance."))   
     if len(pprs) == 0:
         return False
     else:
@@ -344,7 +345,7 @@ def get_parametric_roles(principal):
         return [prr.role for prr in PrincipalParamRoleRelation.objects.filter(
             group=principal)]
     else:
-        raise TypeError("The principal must be either a User instance or a Group instance.")
+        raise TypeError(_("The principal must be either a User instance or a Group instance."))
     
     
 def get_all_parametric_roles(principal):
