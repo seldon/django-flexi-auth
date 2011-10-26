@@ -309,9 +309,10 @@ class ParamRole(models.Model):
     ##---------------------------------------##
     
     class Meta:
+        ordering = ('role__name',)
         verbose_name = _('Parametric Role')
-        verbose_name_plural = _('Parametric Roles')
-    
+        verbose_name_plural = _('Parametric Roles') 
+
 
 class PrincipalParamRoleRelation(models.Model):
     """
