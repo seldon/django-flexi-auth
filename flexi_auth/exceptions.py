@@ -52,7 +52,7 @@ class WrongPermissionCheck(Exception):
         self.context = context
 
     def __str__(self):
-        return _(u"Can't check permission %(perm)s on object %(obj)s with respect to context (ctx)s") % \
+        return _(u"Can't check permission %(perm)s on object %(obj)s with respect to context %(ctx)s") % \
                     { 'perm' : self.perm, 'obj' : self.obj, 'ctx' : self.context }
     
     
